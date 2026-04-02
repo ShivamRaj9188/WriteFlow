@@ -87,5 +87,4 @@ When fully implemented, WriteFlow will serve as a robust API backend supporting 
     ./mvnw spring-boot:run
     ```
 
-## API Documentation (Coming Soon)
-*(Swagger / OpenAPI integration planned for future phases to document all available endpoints dynamically).*
+
