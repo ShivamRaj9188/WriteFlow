@@ -1,6 +1,7 @@
 package com.in.Blog_app.service.impl;
 
 import com.in.Blog_app.dto.CommentDto;
+import com.in.Blog_app.dto.CommentRequest;
 import com.in.Blog_app.entity.Comment;
 import com.in.Blog_app.entity.Post;
 import com.in.Blog_app.entity.User;
@@ -8,36 +9,32 @@ import com.in.Blog_app.repository.CommentRepository;
 import com.in.Blog_app.repository.PostRepository;
 import com.in.Blog_app.repository.UserRepository;
 import com.in.Blog_app.service.CommentService;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
+import com.in.Blog_app.util.InputSanitizer;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
 
-    @Autowired
-    private CommentRepository commentRepository;
-
-    @Autowired
-    private PostRepository postRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private ModelMapper modelMapper;
+    private final CommentRepository commentRepository;
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
+    private final InputSanitizer inputSanitizer;
 
     @Override
-    public CommentDto createComment(CommentDto commentDto, Long postId, Long userId) {
+    public CommentDto createComment(CommentRequest commentRequest, Long postId, Long userId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Comment comment = modelMapper.map(commentDto, Comment.class);
+        Comment comment = new Comment();
+        comment.setContent(inputSanitizer.sanitizeMultilineText(commentRequest.getContent(), 2000, "content"));
         comment.setPost(post);
         comment.setUser(user);
 
