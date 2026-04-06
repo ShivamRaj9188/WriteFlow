@@ -1,20 +1,21 @@
 @import "tailwindcss";
 
 @theme {
-  --color-dark: #0f1115;
-  --color-glass: rgba(255, 255, 255, 0.05);
-  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-dark: #000000;
+  --color-dark-surface: #0a0a0a;
+  --color-glass: rgba(255, 255, 255, 0.03);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
 }
 
 @layer base {
   body {
-    @apply bg-dark text-white antialiased min-h-screen bg-gradient-to-br from-[#0c0d11] via-[#15171e] to-[#0d0f14];
+    @apply bg-dark text-white antialiased min-h-screen bg-[#030303];
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)];
+    @apply bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-[0_4px_30px_rgba(0,0,0,0.5)];
   }
 }

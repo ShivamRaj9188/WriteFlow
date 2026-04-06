@@ -1,5 +1,5 @@
 import React from 'react';
-import { cx } from 'class-variance-authority';
+import { clsx as cx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 // Helper to merge Tailwind classes cleanly
