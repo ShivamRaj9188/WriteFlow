@@ -85,8 +85,8 @@ export default function Landing() {
                 Latest Article
               </h1>
               <p className="text-gray-400 font-medium text-sm md:text-base leading-relaxed">
-                Donec ac odio tempor orci dapibus ultrices. Ut lectus arcu bibendum at<br className="hidden md:block" /> 
-                varius vel pharetra vel. Enim sed faucibus turpis in eu mi bibendum.
+                Explore our latest deep dives into modern software engineering, premium UI design patterns, <br className="hidden md:block" /> 
+                and secure full-stack architecture. Built for the modern developer.
               </p>
             </div>
             
@@ -100,9 +100,39 @@ export default function Landing() {
 
           {/* Grid section representing the articles */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {dummyPosts.map((post, idx) => (
-              <ArticleCard key={idx} post={post} />
-            ))}
+            <ArticleCard 
+              post={{
+                title: "Architecting Scalable Microservices with Spring Boot", 
+                tag: "Backend",
+                excerpt: "Learn how to build resilient systems using Spring Boot and distributed architectural patterns for global scale.", 
+                image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop", 
+                authorName: "Azunyan U. Wu",
+                authorAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=60&h=60",
+                readTime: "8min read"
+              }} 
+            />
+            <ArticleCard 
+              post={{
+                title: "The Future of AI-Driven Cybersecurity in 2026", 
+                tag: "Security",
+                excerpt: "Exploring how machine learning models are revolutionizing threat detection and OWASP security hardening.", 
+                image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=600&auto=format&fit=crop", 
+                authorName: "Veronica D. White",
+                authorAvatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=60&h=60",
+                readTime: "12min read"
+              }} 
+            />
+            <ArticleCard 
+              post={{
+                title: "Modern Glassmorphism: Aesthetic vs Accessibility", 
+                tag: "UI/UX Design",
+                excerpt: "A deep dive into balancing premium translucent aesthetics with WCAG accessibility standards in web design.", 
+                image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=600&auto=format&fit=crop", 
+                authorName: "Jesse Pinkman",
+                authorAvatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=60&h=60",
+                readTime: "10min read"
+              }} 
+            />
           </div>
 
         </div>
