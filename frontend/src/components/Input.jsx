@@ -11,11 +11,11 @@ export const Input = forwardRef(({ className, label, error, ...props }, ref) => 
           ref={ref}
           className={twMerge(
             clsx(
-              'w-full px-4 py-3 rounded-xl',
-              'bg-white/5 border border-white/10 backdrop-blur-md',
-              'text-white placeholder:text-gray-500',
+              'w-full px-5 py-3.5 rounded-2xl border',
+              'bg-white/[0.03] border-white/10 backdrop-blur-lg',
+              'text-white placeholder:text-gray-600',
               'transition-all duration-300 ease-in-out',
-              'focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 focus:ring-2 focus:ring-indigo-500/20',
+              'focus:outline-none focus:border-[#4f46e5]/50 focus:bg-white/[0.05] focus:ring-4 focus:ring-[#4f46e5]/20',
               'shadow-inner',
               error && 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20',
               className

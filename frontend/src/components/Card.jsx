@@ -7,11 +7,10 @@ export default function Card({ children, className, hoverEffect = false, ...prop
     <div
       className={twMerge(
         clsx(
-          'relative rounded-2xl p-6 md:p-8',
-          'bg-[#1a1c23]/60 backdrop-blur-xl border border-white/10',
-          'shadow-[0_8px_30px_rgb(0,0,0,0.12)]',
-          'overflow-hidden',
-          hoverEffect && 'transition-all duration-300 hover:border-white/20 hover:shadow-[0_8px_30px_rgba(79,70,229,0.15)] hover:-translate-y-1',
+          'relative rounded-[2rem] p-6 md:p-10',
+          'bg-[#0c0c0c]/80 backdrop-blur-2xl border border-white/[0.08]',
+          'shadow-2xl overflow-hidden',
+          hoverEffect && 'transition-all duration-300 hover:border-white/20 hover:-translate-y-1',
           className
         )
       )}
