@@ -22,7 +22,7 @@ export default function Landing() {
       title: "Blog post title", 
       tag: "UI/UX Design",
       excerpt: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", 
-      image: "https://images.unsplash.com/photo-1542401886-65d6c61de152?q=80&w=600&auto=format&fit=crop", 
+      image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=600&auto=format&fit=crop", 
       authorName: "Veronica D. White",
       authorAvatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=60&h=60",
       readTime: "5min read" 
