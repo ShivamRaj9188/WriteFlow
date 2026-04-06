@@ -1,91 +1,93 @@
-# WriteFlow
+# WriteFlow Full-Stack Blog Platform
 
-WriteFlow is a robust, full-stack blog platform. It is engineered with a separation of concerns in mind, utilizing a modern React (Vite) frontend with a highly curated glassmorphism design system alongside a high-performance Spring Boot API layer backend.
+WriteFlow is a professional-grade, full-stack blog platform developed with a focus on modern web standards, secure backend architecture, and a premium user experience. The project utilizes a decoupled architecture, featuring a high-performance Java Spring Boot REST API and a sophisticated React frontend.
 
-## Architecture
+## 1. Project Overview
 
-The platform follows a modern client-server architecture pattern split within a monorepo structure:
+The primary objective of WriteFlow is to provide a scalable and secure environment for content publishing. The platform implements a complete authentication lifecycle, robust security measures, and a design system centered on high-fidelity glassmorphism aesthetics.
 
-- **frontend**: A single-page application built on React, Vite, and Tailwind CSS.
-- **backend**: A REST API layer built on Java Spring Boot utilizing Spring Security and JWT.
+## 2. Technical Stack
 
-## Features
+### Backend Architecture
+- **Framework**: Spring Boot 3
+- **Security**: Spring Security with Stateless JWT Authentication
+- **Persistence**: Spring Data JPA with H2 Database (Local) / PostgreSQL (Production ready)
+- **Validation**: Jakarta Bean Validation (Hibernate Validator)
+- **Build Tool**: Maven
 
-- **Decoupled System**: Clean separation between the UI and API endpoints. 
-- **Authentication**: JWT-based session management handling user registration, login, and robust cross-origin resource sharing (CORS).
-- **Glassmorphism Interface**: A premium dark-themed design system ensuring soft blurs, distinct gradients, and intuitive user experiences.
-- **State Management**: Centralized React Context providing global user synchronization and authorization barriers.
-- **Scalability**: Backend dependencies established for Role-Based Access Control, extensible models, and global exception handling.
+### Frontend Architecture
+- **Library**: React 19
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS v4 (Vanilla CSS configuration)
+- **Icons**: Lucide React
+- **State Management**: React Context API
+- **Networking**: Axios with HTTP Interceptors
 
-## Technology Stack
+## 3. Architecture Design
 
-### Frontend
-- React 19
-- Vite
-- Tailwind CSS v4
-- React Router DOM
-- Axios
-- Lucide React
+The repository is organized as a monorepo to ensure seamless coordination between the client and server layers.
 
-### Backend
-- Java 17+
-- Spring Boot
-- Spring Security (JWT)
-- Spring Data JPA
-- Maven
+- `/backend`: Contains the Spring Boot application, security configurations, and REST controllers.
+- `/frontend`: Contains the React source code, design system tokens, and service layers.
 
-## Getting Started
+### 4. Security Hardening (OWASP Compliance)
+
+The platform has been audited and hardened according to OWASP best practices:
+
+1. **Rate Limiting**: Implemented sliding-window throttling on all public endpoints (Login/Register) to mitigate brute-force and credential-stuffing attacks.
+2. **Input Validation**: Strict schema-based validation on all DTOs. The system explicitly rejects payloads containing unexpected or malicious fields.
+3. **JWT Security**: Requires a minimum 256-bit (32 character) HMAC-SHA secret key for token signing.
+4. **CORS Policy**: Restrictive Cross-Origin Resource Sharing (CORS) policy limited to trusted development and production origins.
+5. **Security Headers**: Configured Content Security Policy (CSP), Referrer Policy, and HSTS headers.
+
+## 5. Installation and Setup
 
 ### Prerequisites
+- Java Development Kit (JDK) 17 or higher
+- Node.js v18 or higher
+- Maven (Included via ./mvnw)
 
-- Node.js (v18+)
-- Java JDK (17+)
-- Maven (Embedded wrapper available within `/backend`)
-
-### Running the Backend
-
-Ensure you are located at the root of the repository.
+### Backend Configuration
 
 1. Navigate to the backend directory:
    ```bash
    cd backend
    ```
-2. Build and run the Spring Boot server:
+2. Define the mandatory JWT Secret environment variable:
+   ```bash
+   export BLOG_JWT_SECRET=your_minimum_32_character_secret_key
+   ```
+3. Boot the application:
    ```bash
    ./mvnw spring-boot:run
    ```
-   The backend will start and listen on `http://localhost:8080`.
+   The API will initialize at `http://localhost:8080`.
 
-### Running the Frontend
-
-Ensure you are located at the root of the repository.
+### Frontend Configuration
 
 1. Navigate to the frontend directory:
    ```bash
    cd frontend
    ```
-2. Install the necessary NPM packages:
+2. Install dependencies:
    ```bash
    npm install
    ```
-3. Start the Vite development server:
+3. Launch the development server:
    ```bash
    npm run dev
    ```
-   The frontend will start and listen on `http://localhost:5173`.
+   The UI will be accessible at `http://localhost:5173` or `http://localhost:5174`.
 
-## Authentication Flow
+## 6. Authentication Credentials for Testing
 
-The system employs stateless JWT-based authentication. 
+To facilitate immediate testing of the authenticated routes, the following test account is available in the local environment:
 
-1. Clients submit credentials to `/api/auth/login`.
-2. The server verifies and returns a signed `Bearer` token.
-3. The frontend captures the token into browser LocalStorage.
-4. An Axios HTTP interceptor automatically appends the `Authorization: Bearer <token>` header to all outgoing secure requests.
-5. Unauthorized operations resulting in a `401 HTTP` response automatically trigger state purging and routing fallback to the login panel.
+- **Username/Email**: `shivamtest@example.com`
+- **Password**: `Password123`
 
-## Development Constraints
+## 7. Development Guidelines
 
-When pushing modifications, maintain consistent coding practices:
-- Commit structures should follow the conventional commits standard (e.g., `feat:`, `fix:`, `chore:`, `docs:`).
-- Validate dependencies and testing integrations prior to merging into foundational branches.
+- **Branching Strategy**: All feature development should occur on dedicated feature branches before merging into `main`.
+- **Commit Messages**: Follow standard conventional commit prefixes (`feat:`, `fix:`, `docs:`, `style:`).
+- **Environment Management**: Never commit actual secrets to the repository; utilize environment variables or `.env` files (git-ignored) for local configuration.
