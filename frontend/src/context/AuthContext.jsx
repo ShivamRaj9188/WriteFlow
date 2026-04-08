@@ -8,17 +8,28 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
 
-  // In a real app we might fetch user profile using the token here!
-  // For now, if we have a token, we consider them logged in.
   useEffect(() => {
-    if (token) {
-        // Typically you'd call a '/auth/me' endpoint here to get actual user details
-        setUser({ username: 'Authorized User' });
-    } else {
+    const fetchUser = async () => {
+      if (token) {
+        try {
+          const res = await api.get('/users/me');
+          setUser(res.data);
+        } catch (err) {
+          console.error("Failed to fetch user session", err);
+          setUser(null);
+        }
+      } else {
         setUser(null);
-    }
-    setLoading(false);
+      }
+      setLoading(false);
+    };
+
+    fetchUser();
   }, [token]);
+
+  const updateUserSession = (updatedUser) => {
+    setUser(updatedUser);
+  };
 
   const login = async (email, password) => {
     try {
@@ -62,7 +73,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateUserSession }}>
       {!loading && children}
     </AuthContext.Provider>
   );

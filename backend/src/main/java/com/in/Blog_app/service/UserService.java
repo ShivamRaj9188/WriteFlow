@@ -60,6 +60,22 @@ public class UserService {
         return mapUser(userRepository.save(user));
     }
 
+    @Transactional
+    public UserResponse updateProfile(com.in.Blog_app.dto.user.UpdateProfileRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No authenticated user found");
+        }
+
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Authenticated user not found"));
+
+        if (request.name() != null) user.setName(request.name());
+        if (request.profileImageUrl() != null) user.setProfileImageUrl(request.profileImageUrl());
+
+        return mapUser(userRepository.save(user));
+    }
+
     private Role resolveRole(RoleName roleName) {
         return roleRepository.findByName(roleName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found: " + roleName));
@@ -74,6 +90,8 @@ public class UserService {
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
+                user.getName(),
+                user.getProfileImageUrl(),
                 Boolean.TRUE.equals(user.getEnabled()),
                 roles
         );

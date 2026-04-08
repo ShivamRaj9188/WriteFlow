@@ -6,6 +6,8 @@ public record UserResponse(
         Long id,
         String username,
         String email,
+        String name,
+        String profileImageUrl,
         boolean enabled,
         Set<String> roles
 ) {

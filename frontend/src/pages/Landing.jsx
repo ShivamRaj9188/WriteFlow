@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, LogOut, Zap, Shield, BookOpen, Rss, TrendingUp, User } from 'lucide-react';
 import Button from '../components/Button';
 import ArticleCard from '../components/ArticleCard';
+import ProfileModal from '../components/ProfileModal';
 import { useAuth } from '../context/AuthContext';
 import { dummyArticles, categories } from '../services/dummyData';
 
@@ -37,12 +38,26 @@ function NavBar({ user, logout }) {
       {/* Auth Actions */}
       {user ? (
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] flex items-center justify-center">
-              <User className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-xs font-medium text-gray-300">{user.username}</span>
-          </div>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-profile'))}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/20 transition-all group"
+            title="Edit Profile"
+          >
+            {user.profileImageUrl ? (
+              <img 
+                src={user.profileImageUrl} 
+                alt={user.name || user.username} 
+                className="w-5 h-5 rounded-full object-cover border border-white/10 group-hover:scale-105 transition-transform"
+              />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] flex items-center justify-center group-hover:scale-105 transition-transform">
+                <User className="w-3 h-3 text-white" />
+              </div>
+            )}
+            <span className="text-xs font-medium text-gray-300 group-hover:text-white transition-colors">
+              {user.name || user.username}
+            </span>
+          </button>
           <button
             onClick={logout}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
@@ -225,7 +240,7 @@ function LoggedInView({ user }) {
           {greeting()},
         </p>
         <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-tight">
-          {user.username} <span className="text-gray-600">👋</span>
+          {user.name || user.username}
         </h1>
         <p className="text-gray-500 text-sm mt-2">
           Here's what's trending in your feed today.
@@ -277,12 +292,26 @@ function LoggedInView({ user }) {
 /* Root Export                                             */
 /* ─────────────────────────────────────────────────────── */
 export default function Landing() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUserSession } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  React.useEffect(() => {
+    const handleOpen = () => setIsProfileOpen(true);
+    window.addEventListener('open-profile', handleOpen);
+    return () => window.removeEventListener('open-profile', handleOpen);
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-[#030303] selection:bg-purple-500/30">
       <BackgroundOrbs />
       <NavBar user={user} logout={logout} />
+
+      <ProfileModal 
+        isOpen={isProfileOpen} 
+        onClose={() => setIsProfileOpen(false)} 
+        user={user} 
+        onUpdate={updateUserSession} 
+      />
 
       <AnimatePresence mode="wait">
         {user ? (

@@ -40,4 +40,9 @@ public class UserController {
     public UserResponse updateUserRoles(@PathVariable @Positive Long userId, @Valid @RequestBody UpdateRolesRequest request) {
         return userService.updateUserRoles(userId, request);
     }
+
+    @PatchMapping("/me")
+    public UserResponse updateProfile(@Valid @RequestBody com.in.Blog_app.dto.user.UpdateProfileRequest request) {
+        return userService.updateProfile(request);
+    }
 }
