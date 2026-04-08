@@ -6,6 +6,12 @@ WriteFlow is a professional-grade, full-stack blog platform developed with a foc
 
 The primary objective of WriteFlow is to provide a scalable and secure environment for content publishing. The platform implements a complete authentication lifecycle, robust security measures, and a design system centered on high-fidelity glassmorphism aesthetics.
 
+### Key Capabilities & Features
+- **Cinematic UI/UX**: Distinct, responsive interfaces for authenticated vs. guest users, complete with subtle animations, a custom typewriter-style loader, and a highly polished dark-mode aesthetic.
+- **Native Profile Management**: Advanced profile handling allowing users to update their name, bio, and profile pictures dynamically.
+- **Client-Side Image Processing**: An intelligent `ProfileModal` utilizing HTML5 Canvas to instantly resize and compress local images before converting them to Base64 strings for optimized backend storage.
+- **Dynamic State Synchronization**: Seamless global React state syncing ensuring immediate UI updates across all components (like the Navbar and Dashboard) upon profile changes without requiring a page reload.
+
 ## 2. Technical Stack
 
 ### Backend Architecture
@@ -37,8 +43,9 @@ The platform has been audited and hardened according to OWASP best practices:
 1. **Rate Limiting**: Implemented sliding-window throttling on all public endpoints (Login/Register) to mitigate brute-force and credential-stuffing attacks.
 2. **Input Validation**: Strict schema-based validation on all DTOs. The system explicitly rejects payloads containing unexpected or malicious fields.
 3. **JWT Security**: Requires a minimum 256-bit (32 character) HMAC-SHA secret key for token signing.
-4. **CORS Policy**: Restrictive Cross-Origin Resource Sharing (CORS) policy limited to trusted development and production origins.
+4. **CORS Policy & Method Support**: Restrictive Cross-Origin Resource Sharing (CORS) policy limited to trusted development and production origins, explicitly supporting required HTTP methods like `PATCH` for incremental resource updates.
 5. **Security Headers**: Configured Content Security Policy (CSP), Referrer Policy, and HSTS headers.
+6. **Payload Capacity Management**: Configured robust backend support and entity mapping (e.g. `@Lob`) to safely handle large `Base64` image payloads while rejecting maliciously oversized requests.
 
 ## 5. Installation and Setup
 
