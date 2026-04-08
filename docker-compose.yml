@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:15-alpine
+    container_name: blog-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shivam}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shivampassword123}
+      POSTGRES_DB: ${POSTGRES_DB:-blogdb}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    container_name: blog-backend
+    environment:
+      - SERVER_PORT=8080
+      - BLOG_DB_URL=jdbc:postgresql://database:5432/${POSTGRES_DB:-blogdb}
+      - BLOG_DB_USERNAME=${POSTGRES_USER:-shivam}
+      - BLOG_DB_PASSWORD=${POSTGRES_PASSWORD:-shivampassword123}
+      - BLOG_JPA_DDL_AUTO=update
+      - BLOG_SHOW_SQL=false
+      # Make sure to securely pass in a JWT secret block from your server's true environment variables in production.
+      - BLOG_JWT_SECRET=${JWT_SECRET:-ThisIsAVerySecretKeyForJwtAuthenticationPleaseChangeInProdThisMustBeLongEnough}
+      - BLOG_JWT_EXPIRATION_MS=86400000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: blog-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
