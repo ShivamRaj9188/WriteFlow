@@ -1,143 +1,312 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, LogOut, Zap, Shield, BookOpen, Rss, TrendingUp, User } from 'lucide-react';
 import Button from '../components/Button';
 import ArticleCard from '../components/ArticleCard';
 import { useAuth } from '../context/AuthContext';
-import { ArrowRight, LogOut } from 'lucide-react';
+import { dummyArticles, categories } from '../services/dummyData';
 
-export default function Landing() {
-  const { user, logout } = useAuth();
-  
-  const dummyPosts = [
-    { 
-      title: "Blog post title", 
-      tag: "UI/UX Design",
-      excerpt: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", 
-      image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop", 
-      authorName: "Azunyan U. Wu",
-      authorAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=60&h=60",
-      readTime: "5min read" 
-    },
-    { 
-      title: "Blog post title", 
-      tag: "UI/UX Design",
-      excerpt: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", 
-      image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=600&auto=format&fit=crop", 
-      authorName: "Veronica D. White",
-      authorAvatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=60&h=60",
-      readTime: "5min read" 
-    },
-    { 
-      title: "Blog post title", 
-      tag: "UI/UX Design",
-      excerpt: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", 
-      image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=600&auto=format&fit=crop", 
-      authorName: "Jesse Pinkman",
-      authorAvatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=60&h=60",
-      readTime: "5min read" 
-    }
+/* ─────────────────────────────────────────────────────── */
+/* Floating background orbs                                */
+/* ─────────────────────────────────────────────────────── */
+function BackgroundOrbs() {
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      <div className="absolute -top-40 -left-40 w-[700px] h-[700px] bg-[#4f46e5] rounded-full opacity-[0.06] blur-[120px]" />
+      <div className="absolute top-1/2 -right-60 w-[600px] h-[600px] bg-[#7c3aed] rounded-full opacity-[0.05] blur-[120px]" />
+      <div className="absolute -bottom-60 left-1/3 w-[500px] h-[500px] bg-[#6366f1] rounded-full opacity-[0.04] blur-[100px]" />
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Top Nav                                                 */
+/* ─────────────────────────────────────────────────────── */
+function NavBar({ user, logout }) {
+  return (
+    <nav className="fixed top-0 w-full z-50 px-6 py-4 flex justify-between items-center border-b border-white/[0.04] bg-[#030303]/80 backdrop-blur-xl">
+      {/* Logo */}
+      <Link to="/" className="flex items-center gap-2 group">
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] flex items-center justify-center shadow-lg shadow-purple-900/40">
+          <Rss className="w-3.5 h-3.5 text-white" />
+        </div>
+        <span className="text-sm font-bold text-white tracking-tight">WriteFlow</span>
+      </Link>
+
+      {/* Auth Actions */}
+      {user ? (
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] flex items-center justify-center">
+              <User className="w-3 h-3 text-white" />
+            </div>
+            <span className="text-xs font-medium text-gray-300">{user.username}</span>
+          </div>
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Sign out
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <Link
+            to="/login"
+            className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+          >
+            Log In
+          </Link>
+          <Link to="/signup">
+            <Button className="!rounded-full px-5 py-2 text-sm font-semibold shadow-none !from-[#4f46e5] !to-[#7c3aed] border border-white/10 hover:border-white/20">
+              Sign Up
+            </Button>
+          </Link>
+        </div>
+      )}
+    </nav>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* LOGGED-OUT VIEW: Cinematic Marketing Landing            */
+/* ─────────────────────────────────────────────────────── */
+function LoggedOutView() {
+  const navigate = useNavigate();
+  const trendingArticles = dummyArticles.slice(0, 3);
+
+  const features = [
+    { icon: <BookOpen className="w-5 h-5" />, title: 'Curated Reading', desc: 'Handpicked articles from top engineers and designers.' },
+    { icon: <Zap className="w-5 h-5" />, title: 'Instant Publishing', desc: 'Write and publish to a global audience in seconds.' },
+    { icon: <Shield className="w-5 h-5" />, title: 'Secure & Private', desc: 'JWT-secured, encrypted at rest. Your data is yours.' },
+    { icon: <TrendingUp className="w-5 h-5" />, title: 'Grow Your Reach', desc: 'SEO-optimised posts that get discovered organically.' },
   ];
 
   return (
-    <div className="relative min-h-screen bg-[#030303] overflow-hidden selection:bg-purple-500/30">
-      
-      {/* Absolute dark abstract swirling background shapes */}
-      <div className="fixed inset-0 pointer-events-none opacity-40 mix-blend-screen scale-150 transform translate-x-1/4 translate-y-1/4">
-        <div className="absolute top-1/4 left-1/4 w-[800px] h-[800px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent rounded-full blur-3xl"></div>
-      </div>
-      
-      {/* Quick Nav Header */}
-      <nav className="absolute top-0 w-full z-50 p-6 flex justify-end">
-        {user ? (
-          <div className="flex gap-4 items-center mr-4">
-             <span className="text-gray-400 text-sm font-medium">Logged in successfully</span>
-             <Button onClick={logout} className="p-2 w-10 h-10 rounded-full border-none shadow-none hover:bg-white/10 !bg-transparent !from-transparent !to-transparent group p-0">
-               <LogOut className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
-             </Button>
-          </div>
-        ) : (
-          <div className="flex gap-3 items-center mr-4">
-             <Link to="/login" className="text-sm font-medium text-gray-400 hover:text-white transition-colors px-4 py-2">
-                Log In
-             </Link>
-             <Link to="/signup">
-                <Button className="!rounded-full px-6 py-2.5 text-sm font-bold shadow-none !from-[#4f46e5] !to-[#7c3aed] border border-white/10 hover:border-white/30">
-                  Sign Up
-                </Button>
-             </Link>
-          </div>
-        )}
-      </nav>
+    <div className="pt-24">
+      {/* ── Hero ── */}
+      <section className="relative flex flex-col items-center justify-center text-center px-6 py-28 md:py-36 overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+        >
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full bg-[#4f46e5]/10 text-[#818cf8] text-xs font-semibold tracking-wider uppercase border border-[#4f46e5]/20">
+            <Zap className="w-3 h-3" /> The Modern Developer Blog Platform
+          </span>
 
-      {/* Main Centered UI App Container */}
-      <div className="flex items-center justify-center min-h-screen p-4 md:p-8 relative z-10 w-full">
-        
-        {/* Massive Glass Wrapping Card */}
-        <div className="w-full max-w-5xl rounded-[32px] md:rounded-[2.5rem] bg-[#0c0c0c]/80 backdrop-blur-2xl border border-white/[0.08] shadow-2xl overflow-hidden p-6 md:p-12 lg:p-14">
-          
-          {/* Header section of the Card */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
-            <div className="max-w-xl">
-              <span className="inline-block px-3 py-1 mb-4 rounded-full bg-[#4f46e5]/20 text-[#6366f1] text-[10px] font-bold tracking-wider uppercase border border-[#4f46e5]/30">
-                Blog Post
+          <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none mb-6 max-w-4xl mx-auto">
+            Write. Share.{' '}
+            <span className="bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#a78bfa] bg-clip-text text-transparent">
+              Inspire.
+            </span>
+          </h1>
+
+          <p className="text-base md:text-lg text-gray-400 max-w-xl mx-auto leading-relaxed mb-10">
+            WriteFlow is a premium blogging platform built for engineers, designers, and makers
+            who take their craft seriously.
+          </p>
+
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <Link to="/signup">
+              <Button className="!rounded-full px-8 py-3.5 text-base font-bold shadow-none !from-[#4f46e5] !to-[#7c3aed] border border-white/10 hover:border-white/20 shadow-lg shadow-purple-900/30">
+                Start Writing for Free
+                <ArrowRight className="w-4 h-4 ml-2 inline" />
+              </Button>
+            </Link>
+            <Link to="/login">
+              <button className="px-8 py-3.5 rounded-full text-base font-semibold text-gray-300 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/[0.04] transition-all duration-200">
+                Log In
+              </button>
+            </Link>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ── Features ── */}
+      <section className="max-w-5xl mx-auto px-6 pb-24">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-24"
+        >
+          {features.map((f, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              className="p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:border-purple-500/20 hover:bg-white/[0.04] transition-all duration-300"
+            >
+              <div className="w-9 h-9 rounded-xl bg-[#4f46e5]/10 border border-[#4f46e5]/20 flex items-center justify-center text-[#818cf8] mb-4">
+                {f.icon}
+              </div>
+              <h3 className="text-sm font-bold text-white mb-1">{f.title}</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* ── Trending Articles ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <span className="inline-block px-3 py-1 mb-2 rounded-full bg-[#4f46e5]/10 text-[#6366f1] text-[10px] font-bold tracking-wider uppercase border border-[#4f46e5]/20">
+                Trending Now
               </span>
-              <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-4 leading-tight">
-                Latest Article
-              </h1>
-              <p className="text-gray-400 font-medium text-sm md:text-base leading-relaxed">
-                Explore our latest deep dives into modern software engineering, premium UI design patterns, <br className="hidden md:block" /> 
-                and secure full-stack architecture. Built for the modern developer.
-              </p>
+              <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+                What engineers are reading
+              </h2>
             </div>
-            
-            <Link to={user ? "/dashboard" : "/login"}>
-              <Button className="!rounded-full shadow-none whitespace-nowrap pl-5 pr-4 py-3 text-sm font-bold tracking-wide !from-[#4f46e5] !to-[#6366f1] hover:!from-[#4338ca] hover:!to-[#4f46e5]">
-                View All Posts 
-                <ArrowRight className="w-4 h-4 ml-1.5" />
+            <Link to="/signup">
+              <Button className="!rounded-full shadow-none pl-5 pr-4 py-2.5 text-sm font-bold whitespace-nowrap !from-[#4f46e5] !to-[#6366f1]">
+                See All <ArrowRight className="w-4 h-4 ml-1 inline" />
               </Button>
             </Link>
           </div>
 
-          {/* Grid section representing the articles */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ArticleCard 
-              post={{
-                title: "Architecting Scalable Microservices with Spring Boot", 
-                tag: "Backend",
-                excerpt: "Learn how to build resilient systems using Spring Boot and distributed architectural patterns for global scale.", 
-                image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop", 
-                authorName: "Azunyan U. Wu",
-                authorAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=60&h=60",
-                readTime: "8min read"
-              }} 
-            />
-            <ArticleCard 
-              post={{
-                title: "The Future of AI-Driven Cybersecurity in 2026", 
-                tag: "Security",
-                excerpt: "Exploring how machine learning models are revolutionizing threat detection and OWASP security hardening.", 
-                image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=600&auto=format&fit=crop", 
-                authorName: "Veronica D. White",
-                authorAvatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=60&h=60",
-                readTime: "12min read"
-              }} 
-            />
-            <ArticleCard 
-              post={{
-                title: "Modern Glassmorphism: Aesthetic vs Accessibility", 
-                tag: "UI/UX Design",
-                excerpt: "A deep dive into balancing premium translucent aesthetics with WCAG accessibility standards in web design.", 
-                image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=600&auto=format&fit=crop", 
-                authorName: "Jesse Pinkman",
-                authorAvatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=60&h=60",
-                readTime: "10min read"
-              }} 
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {trendingArticles.map((article, i) => (
+              <motion.div
+                key={article.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+              >
+                <ArticleCard post={article} />
+              </motion.div>
+            ))}
           </div>
+        </motion.div>
+      </section>
+    </div>
+  );
+}
 
-        </div>
+/* ─────────────────────────────────────────────────────── */
+/* LOGGED-IN VIEW: Personalized Feed Dashboard            */
+/* ─────────────────────────────────────────────────────── */
+function LoggedInView({ user }) {
+  const [activeCategory, setActiveCategory] = useState('All');
 
-      </div>
+  const filtered =
+    activeCategory === 'All'
+      ? dummyArticles
+      : dummyArticles.filter((a) => a.category === activeCategory);
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  return (
+    <div className="pt-24 max-w-5xl mx-auto px-6 pb-24">
+      {/* ── Greeting ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mb-10 pt-8"
+      >
+        <p className="text-[#818cf8] text-sm font-semibold tracking-wider uppercase mb-1">
+          {greeting()},
+        </p>
+        <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-tight">
+          {user.username} <span className="text-gray-600">👋</span>
+        </h1>
+        <p className="text-gray-500 text-sm mt-2">
+          Here's what's trending in your feed today.
+        </p>
+      </motion.div>
+
+      {/* ── Category Pills ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="flex flex-wrap gap-2 mb-10"
+      >
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border ${
+              activeCategory === cat
+                ? 'bg-[#4f46e5] border-[#4f46e5] text-white shadow-lg shadow-purple-900/30'
+                : 'border-white/[0.08] text-gray-400 hover:text-white hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05]'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </motion.div>
+
+      {/* ── Article Grid ── */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeCategory}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {filtered.map((article) => (
+            <ArticleCard key={article.id} post={article} />
+          ))}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── */
+/* Root Export                                             */
+/* ─────────────────────────────────────────────────────── */
+export default function Landing() {
+  const { user, logout } = useAuth();
+
+  return (
+    <div className="relative min-h-screen bg-[#030303] selection:bg-purple-500/30">
+      <BackgroundOrbs />
+      <NavBar user={user} logout={logout} />
+
+      <AnimatePresence mode="wait">
+        {user ? (
+          <motion.div
+            key="logged-in"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <LoggedInView user={user} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="logged-out"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <LoggedOutView />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
