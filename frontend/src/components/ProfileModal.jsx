@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Image as ImageIcon, User as UserIcon, Loader2 } from 'lucide-react';
+import { X, User as UserIcon, Loader2, Upload, Camera } from 'lucide-react';
 import Button from './Button';
 import api from '../services/api';
 
@@ -9,6 +9,55 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
   const [profileImageUrl, setProfileImageUrl] = useState(user?.profileImageUrl || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload a valid image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        // Resize parameters
+        const MAX_WIDTH = 256;
+        const MAX_HEIGHT = 256;
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate aspect ratio
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compress cleanly
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        setProfileImageUrl(dataUrl);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = ''; // Reset input so identical file can be re-selected if needed
+  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -22,8 +71,10 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
       onUpdate(res.data);
       onClose();
     } catch (err) {
-      console.error('Failed to update profile:', err);
-      setError(err.response?.data?.message || 'Failed to save profile changes.');
+      console.error('Failed to update profile (Full Error):', err);
+      console.error('Response Data:', err.response?.data);
+      console.error('Status:', err.response?.status);
+      setError(`Error ${err.response?.status}: ${err.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -68,9 +119,52 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
           )}
 
           {/* Form */}
-          <div className="space-y-5">
+          <div className="space-y-6 flex flex-col items-center">
+            
+            {/* Native Device Picture Upload */}
+            <div className="flex flex-col items-center gap-3">
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                className="hidden" 
+              />
+              
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="relative group w-24 h-24 rounded-full border border-dashed border-white/20 bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#6366f1]/50 transition-all flex items-center justify-center overflow-hidden"
+              >
+                {profileImageUrl ? (
+                  <>
+                    <img 
+                      src={profileImageUrl} 
+                      alt="Avatar Preview" 
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <Camera className="w-6 h-6 text-white" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center text-gray-500 group-hover:text-[#818cf8] transition-colors">
+                    <Upload className="w-6 h-6 mb-1" />
+                    <span className="text-[10px] uppercase font-bold tracking-wider">Upload</span>
+                  </div>
+                )}
+              </button>
+              {profileImageUrl && (
+                 <button 
+                   onClick={() => setProfileImageUrl('')} 
+                   className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+                 >
+                   Remove Image
+                 </button>
+              )}
+            </div>
+
             {/* Display Name Input */}
-            <div>
+            <div className="w-full">
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                 Display Name
               </label>
@@ -86,25 +180,6 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
               </div>
             </div>
 
-            {/* Profile Image URL Input */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Profile Image URL
-              </label>
-              <div className="relative">
-                <ImageIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input
-                  type="text"
-                  value={profileImageUrl}
-                  onChange={(e) => setProfileImageUrl(e.target.value)}
-                  placeholder="https://example.com/avatar.png"
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none focus:border-[#6366f1] focus:ring-1 focus:ring-[#6366f1] transition-all"
-                />
-              </div>
-              <p className="mt-2 text-xs text-gray-500">
-                Provide a direct link to an image. Leave blank to use a default icon.
-              </p>
-            </div>
           </div>
 
           {/* Footer Actions */}

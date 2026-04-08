@@ -41,7 +41,7 @@ public class User {
     @Column(length = 100)
     private String name;
 
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String profileImageUrl;
 
     @JsonIgnore
