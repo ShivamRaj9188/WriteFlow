@@ -46,8 +46,20 @@ The platform has been audited and hardened according to OWASP best practices:
 - Java Development Kit (JDK) 17 or higher
 - Node.js v18 or higher
 - Maven (Included via ./mvnw)
+- **Docker & Docker Compose** (Recommended for easiest deployment)
 
-### Backend Configuration
+### Deployment via Docker (Recommended)
+
+The entire application stack (Frontend, Backend, PostgreSQL database) is fully dockerized.
+
+1. Ensure Docker is running.
+2. From the root directory, run:
+   ```bash
+   docker compose up --build -d
+   ```
+3. Access the application natively at `http://localhost`.
+
+### Backend Configuration (Manual)
 
 1. Navigate to the backend directory:
    ```bash
@@ -91,3 +103,24 @@ To facilitate immediate testing of the authenticated routes, the following test 
 - **Branching Strategy**: All feature development should occur on dedicated feature branches before merging into `main`.
 - **Commit Messages**: Follow standard conventional commit prefixes (`feat:`, `fix:`, `docs:`, `style:`).
 - **Environment Management**: Never commit actual secrets to the repository; utilize environment variables or `.env` files (git-ignored) for local configuration.
+
+## 8. Docker Configurations
+
+To easily launch, scale, and integrate the system across platforms, a 3-tier containerization setup is provided.
+
+```text
+Blog/
+├── docker-compose.yml     # Root orchestration (DB, Backend, Frontend)
+├── backend/
+│   └── Dockerfile         # Multi-stage Maven + JRE build
+├── frontend/
+│   ├── Dockerfile         # Multi-stage Node Vite + Nginx build
+│   └── nginx.conf         # Static file serving & /api/ reverse proxy
+└── ...
+```
+
+### Advantages of the setup:
+1.  **PostgreSQL by Default:** Runs a dedicated `postgres:15-alpine` container with persistent data volumes (`postgres_data`).
+2.  **No CORS Issues:** The Frontend serves static files via Nginx. Any request to `http://localhost/api/*` is internally routed through the secure Docker network to the Spring Boot backend (`http://backend:8080/api/*`) by the Nginx reverse proxy.
+3.  **Multi-stage Builds:** Extremely lightweight production images with no build-time overhead (e.g. Maven/Node) in the final containers.
+
