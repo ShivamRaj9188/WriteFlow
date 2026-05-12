@@ -11,8 +11,12 @@ const REACTIONS = [
   { type: 'ANGRY', emoji: '😡', label: 'Angry' },
 ];
 
-export default function ReactionPicker({ postId, currentReaction, onReact, onClose }) {
+export default function ReactionPicker({ postId, currentReaction, onReact, onReactLocal, onClose }) {
   const handleSelect = async (type) => {
+    // Always update local state immediately (optimistic)
+    if (onReactLocal) onReactLocal(type);
+
+    // Try to persist to backend
     try {
       let updated;
       if (currentReaction === type) {
@@ -20,9 +24,11 @@ export default function ReactionPicker({ postId, currentReaction, onReact, onClo
       } else {
         updated = await reactToPost(postId, type);
       }
-      onReact(updated);
+      // If backend succeeds, sync with real data
+      if (onReact) onReact(updated);
     } catch (_) {
-      onClose();
+      // Local state already updated above — silently ignore API failure
+      if (onClose) onClose();
     }
   };
 

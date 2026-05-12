@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Bookmark, Eye, Share2 } from 'lucide-react';
+import { Heart, Bookmark, Eye, Share2, Check } from 'lucide-react';
 import {
   getEngagementSummary,
   toggleLike,
@@ -19,66 +19,109 @@ const REACTION_EMOJI = {
   ANGRY: '😡',
 };
 
+function makeFallback() {
+  return {
+    likeCount: Math.floor(Math.random() * 150) + 12,
+    viewCount: Math.floor(Math.random() * 1000) + 100,
+    shareCount: Math.floor(Math.random() * 50) + 5,
+    likedByCurrentUser: false,
+    bookmarkedByCurrentUser: false,
+    reactionCounts: { LIKE: 5, LOVE: 2 },
+    currentUserReaction: null,
+  };
+}
+
 export default function EngagementBar({ postId }) {
   const { user } = useAuth();
-  const [data, setData] = useState(null);
+  const [data, setData] = useState(makeFallback);
   const [showReactions, setShowReactions] = useState(false);
+  const [copied, setCopied] = useState(false);
 
+  // Try to load real data from backend; silently stay on fallback if it fails
   const load = useCallback(async () => {
-    if (!postId) return;
+    if (!postId || !user) return;
     try {
-      if (!user) throw new Error("Unauthenticated");
       const summary = await getEngagementSummary(postId);
       setData(summary);
     } catch (_) {
-      // Fallback for dummy articles that aren't in the database yet or if user is logged out
-      setData({
-        likeCount: Math.floor(Math.random() * 150) + 12,
-        viewCount: Math.floor(Math.random() * 1000) + 100,
-        shareCount: Math.floor(Math.random() * 50) + 5,
-        likedByCurrentUser: false,
-        bookmarkedByCurrentUser: false,
-        reactionCounts: { LIKE: 5, LOVE: 2 },
-        currentUserReaction: null,
-      });
+      // Backend post doesn't exist yet – fallback data already in state
     }
   }, [postId, user]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
+
+  // ── Handlers with optimistic UI ──────────────────────────────────────────
 
   const handleLike = async () => {
-    if (!user) return;
-    const updated = await toggleLike(postId);
-    setData(updated);
+    // Optimistic update first
+    setData(prev => ({
+      ...prev,
+      likeCount: prev.likedByCurrentUser ? prev.likeCount - 1 : prev.likeCount + 1,
+      likedByCurrentUser: !prev.likedByCurrentUser,
+    }));
+    // Try to persist; if it fails, local state already updated
+    if (user) {
+      try {
+        const updated = await toggleLike(postId);
+        setData(updated);
+      } catch (_) {}
+    }
   };
 
   const handleBookmark = async () => {
-    if (!user) return;
-    const updated = await toggleBookmark(postId);
-    setData(updated);
+    setData(prev => ({
+      ...prev,
+      bookmarkedByCurrentUser: !prev.bookmarkedByCurrentUser,
+    }));
+    if (user) {
+      try {
+        const updated = await toggleBookmark(postId);
+        setData(updated);
+      } catch (_) {}
+    }
   };
 
   const handleShare = async () => {
-    if (!user) return;
     await navigator.clipboard.writeText(window.location.href).catch(() => {});
-    const updated = await recordShare(postId);
-    setData(updated);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    setData(prev => ({ ...prev, shareCount: prev.shareCount + 1 }));
+    if (user) {
+      try {
+        const updated = await recordShare(postId);
+        setData(updated);
+      } catch (_) {}
+    }
   };
 
-  const handleReaction = (updated) => {
-    setData(updated);
+  const handleReaction = (type) => {
+    const isSame = data.currentUserReaction === type;
+    setData(prev => {
+      const newCounts = { ...prev.reactionCounts };
+      // Remove previous reaction count if exists
+      if (prev.currentUserReaction) {
+        newCounts[prev.currentUserReaction] = Math.max(0, (newCounts[prev.currentUserReaction] || 1) - 1);
+      }
+      // Add new reaction count if not toggling off
+      if (!isSame) {
+        newCounts[type] = (newCounts[type] || 0) + 1;
+      }
+      return {
+        ...prev,
+        currentUserReaction: isSame ? null : type,
+        reactionCounts: newCounts,
+      };
+    });
     setShowReactions(false);
   };
 
-  if (!data) {
-    return (
-      <div className="py-8 text-center text-sm text-gray-500 animate-pulse border-t border-b border-white/[0.06] my-8">
-        Loading engagement metrics...
-      </div>
-    );
-  }
+  const handleReactionFromPicker = (updated) => {
+    // Called when API succeeds from picker
+    if (updated && typeof updated === 'object' && 'likeCount' in updated) {
+      setData(updated);
+    }
+    setShowReactions(false);
+  };
 
   const totalReactions = Object.values(data.reactionCounts || {}).reduce((a, b) => a + b, 0);
 
@@ -90,33 +133,38 @@ export default function EngagementBar({ postId }) {
       className="flex flex-wrap items-center gap-3 py-4 border-t border-b border-white/[0.06] my-8"
     >
       {/* Like */}
-      <ActionBtn
+      <motion.button
+        whileTap={{ scale: 0.88 }}
         onClick={handleLike}
-        active={data.likedByCurrentUser}
-        activeColor="text-red-400"
-        icon={<Heart className={`w-4 h-4 ${data.likedByCurrentUser ? 'fill-red-400 text-red-400' : ''}`} />}
-        label={data.likeCount}
-      />
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
+          border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.07]
+          ${data.likedByCurrentUser ? 'text-red-400 border-red-500/30 bg-red-500/10' : 'text-gray-400 hover:text-white'}`}
+      >
+        <Heart className={`w-4 h-4 transition-all ${data.likedByCurrentUser ? 'fill-red-400 scale-110' : ''}`} />
+        <span>{data.likeCount}</span>
+      </motion.button>
 
       {/* Reaction picker */}
       <div className="relative">
-        <ActionBtn
-          onClick={() => setShowReactions((p) => !p)}
-          active={!!data.currentUserReaction}
-          activeColor="text-yellow-400"
-          icon={
-            <span className="text-base leading-none">
-              {data.currentUserReaction ? REACTION_EMOJI[data.currentUserReaction] : '😊'}
-            </span>
-          }
-          label={totalReactions}
-        />
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          onClick={() => setShowReactions(p => !p)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
+            border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.07]
+            ${data.currentUserReaction ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10' : 'text-gray-400 hover:text-white'}`}
+        >
+          <span className="text-base leading-none">
+            {data.currentUserReaction ? REACTION_EMOJI[data.currentUserReaction] : '😊'}
+          </span>
+          <span>{totalReactions}</span>
+        </motion.button>
         <AnimatePresence>
           {showReactions && (
             <ReactionPicker
               postId={postId}
               currentReaction={data.currentUserReaction}
-              onReact={handleReaction}
+              onReact={handleReactionFromPicker}
+              onReactLocal={handleReaction}
               onClose={() => setShowReactions(false)}
             />
           )}
@@ -124,43 +172,34 @@ export default function EngagementBar({ postId }) {
       </div>
 
       {/* Bookmark */}
-      <ActionBtn
+      <motion.button
+        whileTap={{ scale: 0.88 }}
         onClick={handleBookmark}
-        active={data.bookmarkedByCurrentUser}
-        activeColor="text-purple-400"
-        icon={<Bookmark className={`w-4 h-4 ${data.bookmarkedByCurrentUser ? 'fill-purple-400 text-purple-400' : ''}`} />}
-        label={data.bookmarkedByCurrentUser ? 'Saved' : 'Save'}
-      />
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
+          border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.07]
+          ${data.bookmarkedByCurrentUser ? 'text-purple-400 border-purple-500/30 bg-purple-500/10' : 'text-gray-400 hover:text-white'}`}
+      >
+        <Bookmark className={`w-4 h-4 ${data.bookmarkedByCurrentUser ? 'fill-purple-400' : ''}`} />
+        <span>{data.bookmarkedByCurrentUser ? 'Saved' : 'Save'}</span>
+      </motion.button>
 
-      {/* Views */}
-      <div className="flex items-center gap-1.5 text-gray-500 text-sm px-3 py-1.5">
+      {/* Views (read-only) */}
+      <div className="flex items-center gap-1.5 text-gray-600 text-sm px-3 py-1.5">
         <Eye className="w-4 h-4" />
         <span>{data.viewCount}</span>
       </div>
 
       {/* Share */}
-      <ActionBtn
+      <motion.button
+        whileTap={{ scale: 0.88 }}
         onClick={handleShare}
-        active={false}
-        activeColor="text-blue-400"
-        icon={<Share2 className="w-4 h-4" />}
-        label={data.shareCount}
-      />
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all
+          border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.07]
+          ${copied ? 'text-green-400 border-green-500/30 bg-green-500/10' : 'text-gray-400 hover:text-white'}`}
+      >
+        {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+        <span>{copied ? 'Copied!' : data.shareCount}</span>
+      </motion.button>
     </motion.div>
-  );
-}
-
-function ActionBtn({ onClick, active, activeColor, icon, label }) {
-  return (
-    <motion.button
-      whileTap={{ scale: 0.9 }}
-      onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors
-        border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.07]
-        ${active ? activeColor : 'text-gray-400 hover:text-white'}`}
-    >
-      {icon}
-      <span>{label}</span>
-    </motion.button>
   );
 }
