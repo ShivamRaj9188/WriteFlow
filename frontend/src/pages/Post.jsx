@@ -4,6 +4,8 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowLeft, Clock, Calendar, Rss } from 'lucide-react';
 import { getArticleById, dummyArticles } from '../services/dummyData';
 import ArticleCard from '../components/ArticleCard';
+import EngagementBar from '../components/engagement/EngagementBar';
+import { recordView } from '../services/engagementApi';
 
 /* Reading progress bar */
 function ReadingProgress() {
@@ -44,6 +46,7 @@ export default function Post() {
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
+    if (id) recordView(id).catch(() => {});
   }, [id]);
 
   if (!article) {
@@ -140,6 +143,9 @@ export default function Post() {
           className="prose-content"
           dangerouslySetInnerHTML={{ __html: article.content }}
         />
+
+        {/* Engagement Bar */}
+        <EngagementBar postId={id} />
       </motion.div>
 
       {/* ── Related Articles ── */}
