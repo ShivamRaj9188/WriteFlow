@@ -31,6 +31,12 @@ public class Post {
     @JoinColumn(name = "user_id", nullable = false)
     private User author;
 
+    @Column(nullable = false)
+    private long viewCount = 0;
+
+    @Column(nullable = false)
+    private long shareCount = 0;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

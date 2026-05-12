@@ -29,4 +29,7 @@ public class PostDto {
 
     @Null(message = "updatedAt is managed by the server")
     private LocalDateTime updatedAt;
+
+    private long viewCount;
+    private long shareCount;
 }
