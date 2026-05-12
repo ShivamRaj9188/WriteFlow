@@ -69,10 +69,22 @@ export default function EngagementBar({ postId }) {
   };
 
   const handleBookmark = async () => {
+    const isNowBookmarked = !data.bookmarkedByCurrentUser;
     setData(prev => ({
       ...prev,
-      bookmarkedByCurrentUser: !prev.bookmarkedByCurrentUser,
+      bookmarkedByCurrentUser: isNowBookmarked,
     }));
+
+    // Persist to localStorage so the Landing page bookmarks tab stays in sync
+    try {
+      const saved = JSON.parse(localStorage.getItem('wf_bookmarks') || '[]');
+      const updated = isNowBookmarked
+        ? [...new Set([...saved, String(postId)])]
+        : saved.filter(id => id !== String(postId));
+      localStorage.setItem('wf_bookmarks', JSON.stringify(updated));
+      window.dispatchEvent(new Event('wf_bookmark_changed'));
+    } catch (_) {}
+
     if (user) {
       try {
         const updated = await toggleBookmark(postId);
@@ -82,15 +94,28 @@ export default function EngagementBar({ postId }) {
   };
 
   const handleShare = async () => {
-    await navigator.clipboard.writeText(window.location.href).catch(() => {});
+    const url = window.location.href;
+    // Reliable clipboard copy with execCommand fallback
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const el = document.createElement('textarea');
+        el.value = url;
+        el.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+      }
+    } catch (_) {}
+
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 2500);
     setData(prev => ({ ...prev, shareCount: prev.shareCount + 1 }));
     if (user) {
-      try {
-        const updated = await recordShare(postId);
-        setData(updated);
-      } catch (_) {}
+      try { const updated = await recordShare(postId); setData(updated); } catch (_) {}
     }
   };
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, LogOut, Zap, Shield, BookOpen, Rss, TrendingUp, User } from 'lucide-react';
+import { ArrowRight, LogOut, Zap, Shield, BookOpen, Rss, TrendingUp, User, Bookmark } from 'lucide-react';
 import Button from '../components/Button';
 import ArticleCard from '../components/ArticleCard';
 import ProfileModal from '../components/ProfileModal';
@@ -214,11 +214,34 @@ function LoggedOutView() {
 /* ─────────────────────────────────────────────────────── */
 function LoggedInView({ user }) {
   const [activeCategory, setActiveCategory] = useState('All');
+  const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'bookmarks'
+  const [bookmarkedIds, setBookmarkedIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('wf_bookmarks') || '[]');
+    } catch { return []; }
+  });
+
+  // Keep bookmarks in sync across the app via storage events
+  React.useEffect(() => {
+    const sync = () => {
+      try {
+        setBookmarkedIds(JSON.parse(localStorage.getItem('wf_bookmarks') || '[]'));
+      } catch {}
+    };
+    window.addEventListener('storage', sync);
+    window.addEventListener('wf_bookmark_changed', sync);
+    return () => {
+      window.removeEventListener('storage', sync);
+      window.removeEventListener('wf_bookmark_changed', sync);
+    };
+  }, []);
 
   const filtered =
     activeCategory === 'All'
       ? dummyArticles
       : dummyArticles.filter((a) => a.category === activeCategory);
+
+  const bookmarkedArticles = dummyArticles.filter(a => bookmarkedIds.includes(a.id));
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -234,7 +257,7 @@ function LoggedInView({ user }) {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-10 pt-8"
+        className="mb-8 pt-8"
       >
         <p className="text-[#818cf8] text-sm font-semibold tracking-wider uppercase mb-1">
           {greeting()},
@@ -247,43 +270,99 @@ function LoggedInView({ user }) {
         </p>
       </motion.div>
 
-      {/* ── Category Pills ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-        className="flex flex-wrap gap-2 mb-10"
-      >
-        {categories.map((cat) => (
+      {/* ── Feed / Bookmarks Tabs ── */}
+      <div className="flex items-center gap-1 mb-8 border-b border-white/[0.06] pb-0">
+        {[{ id: 'feed', label: 'Feed' }, { id: 'bookmarks', label: 'Bookmarks', icon: <Bookmark className="w-3.5 h-3.5" /> }].map(tab => (
           <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border ${
-              activeCategory === cat
-                ? 'bg-[#4f46e5] border-[#4f46e5] text-white shadow-lg shadow-purple-900/30'
-                : 'border-white/[0.08] text-gray-400 hover:text-white hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05]'
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all -mb-px ${
+              activeTab === tab.id
+                ? 'border-[#6366f1] text-white'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
             }`}
           >
-            {cat}
+            {tab.icon}
+            {tab.label}
+            {tab.id === 'bookmarks' && bookmarkedIds.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] font-bold">
+                {bookmarkedIds.length}
+              </span>
+            )}
           </button>
         ))}
-      </motion.div>
+      </div>
 
-      {/* ── Article Grid ── */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeCategory}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {filtered.map((article) => (
-            <ArticleCard key={article.id} post={article} />
-          ))}
-        </motion.div>
-      </AnimatePresence>
+      {activeTab === 'feed' ? (
+        <>
+          {/* ── Category Pills ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="flex flex-wrap gap-2 mb-10"
+          >
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border ${
+                  activeCategory === cat
+                    ? 'bg-[#4f46e5] border-[#4f46e5] text-white shadow-lg shadow-purple-900/30'
+                    : 'border-white/[0.08] text-gray-400 hover:text-white hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </motion.div>
+
+          {/* ── Article Grid ── */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeCategory}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {filtered.map((article) => (
+                <ArticleCard key={article.id} post={article} />
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        </>
+      ) : (
+        /* ── Bookmarks Tab ── */
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="bookmarks"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            {bookmarkedArticles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+                  <Bookmark className="w-7 h-7 text-gray-600" />
+                </div>
+                <h3 className="text-lg font-bold text-white">No bookmarks yet</h3>
+                <p className="text-gray-500 text-sm max-w-xs">
+                  Hit the <strong className="text-gray-300">Save</strong> button on any article to bookmark it here.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {bookmarkedArticles.map((article) => (
+                  <ArticleCard key={article.id} post={article} />
+                ))}
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      )}
     </div>
   );
 }
