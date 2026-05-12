@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Heart, Bookmark, Eye } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { clsx } from 'clsx';
 
@@ -66,21 +66,40 @@ export default function ArticleCard({ post, className }) {
 
         <div className="flex-grow" />
 
-        {/* Footer: Author & Read Time */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/[0.05]">
-          <div className="flex items-center space-x-2">
-            <img
-              src={post.authorAvatar}
-              alt={post.authorName}
-              className="w-6 h-6 rounded-full object-cover border border-white/10"
-            />
-            <span className="text-xs font-semibold text-gray-300">
-              {post.authorName}
+        {/* Footer: Author & Engagement */}
+        <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-white/[0.05]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <img
+                src={post.authorAvatar}
+                alt={post.authorName}
+                className="w-6 h-6 rounded-full object-cover border border-white/10"
+              />
+              <span className="text-xs font-semibold text-gray-300">
+                {post.authorName}
+              </span>
+            </div>
+            <span className="text-xs text-gray-500 font-medium">
+              {post.readTime}
             </span>
           </div>
-          <span className="text-xs text-gray-500 font-medium">
-            {post.readTime}
-          </span>
+          
+          {/* Engagement Metrics (Mocked for visual feedback on landing page) */}
+          <div className="flex items-center justify-between text-gray-500">
+            <div className="flex items-center space-x-4 text-xs font-medium">
+              <div className="flex items-center gap-1.5 hover:text-pink-400 transition-colors">
+                <Heart className="w-3.5 h-3.5" />
+                <span>{post.likes || Math.floor(Math.random() * 150) + 12}</span>
+              </div>
+              <div className="flex items-center gap-1.5 hover:text-blue-400 transition-colors">
+                <Eye className="w-3.5 h-3.5" />
+                <span>{post.views || Math.floor(Math.random() * 1000) + 100}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 hover:text-yellow-400 transition-colors">
+              <Bookmark className="w-3.5 h-3.5" />
+            </div>
+          </div>
         </div>
       </div>
     </motion.div>
