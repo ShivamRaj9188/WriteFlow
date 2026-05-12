@@ -74,15 +74,19 @@ public class PostController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<PostDto> updatePost(
             @PathVariable @Positive(message = "Post id must be positive") Long id,
-            @Valid @RequestBody PostRequest postRequest
+            @Valid @RequestBody PostRequest postRequest,
+            @AuthenticationPrincipal UserPrincipal userDetails
     ) {
-        return ResponseEntity.ok(postService.updatePost(postRequest, id));
+        return ResponseEntity.ok(postService.updatePost(postRequest, id, userDetails.getId()));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deletePost(@PathVariable @Positive(message = "Post id must be positive") Long id) {
-        postService.deletePost(id);
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<Void> deletePost(
+            @PathVariable @Positive(message = "Post id must be positive") Long id,
+            @AuthenticationPrincipal UserPrincipal userDetails
+    ) {
+        postService.deletePost(id, userDetails.getId());
         return ResponseEntity.noContent().build();
     }
 }

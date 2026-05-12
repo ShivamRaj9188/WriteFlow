@@ -65,6 +65,11 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new MessageResponse("Access Denied"), HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<MessageResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<MessageResponse> handleRuntimeException(RuntimeException ex) {
         return new ResponseEntity<>(new MessageResponse(ex.getMessage()), HttpStatus.BAD_REQUEST);

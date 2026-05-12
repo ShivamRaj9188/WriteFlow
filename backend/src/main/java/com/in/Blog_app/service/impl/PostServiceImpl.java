@@ -1,5 +1,7 @@
 package com.in.Blog_app.service.impl;
 
+import com.in.Blog_app.exception.ResourceNotFoundException;
+
 import com.in.Blog_app.dto.PostDto;
 import com.in.Blog_app.dto.PostRequest;
 import com.in.Blog_app.entity.Post;
@@ -26,7 +28,7 @@ public class PostServiceImpl implements PostService {
     @Override
     public PostDto createPost(PostRequest postRequest, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         Post post = new Post();
         post.setTitle(inputSanitizer.sanitizeSingleLineText(postRequest.getTitle(), 200, "title"));
@@ -38,9 +40,9 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public PostDto updatePost(PostRequest postRequest, Long postId) {
+    public PostDto updatePost(PostRequest postRequest, Long postId, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Post", "id", postId));
 
         post.setTitle(inputSanitizer.sanitizeSingleLineText(postRequest.getTitle(), 200, "title"));
         post.setContent(inputSanitizer.sanitizeMultilineText(postRequest.getContent(), 10000, "content"));
@@ -50,16 +52,16 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public void deletePost(Long postId) {
+    public void deletePost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Post", "id", postId));
         postRepository.delete(post);
     }
 
     @Override
     public PostDto getPostById(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Post", "id", postId));
         return modelMapper.map(post, PostDto.class);
     }
 
