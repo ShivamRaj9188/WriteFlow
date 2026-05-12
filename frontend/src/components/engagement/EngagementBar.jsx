@@ -95,21 +95,21 @@ export default function EngagementBar({ postId }) {
 
   const handleShare = async () => {
     const url = window.location.href;
-    // Reliable clipboard copy with execCommand fallback
+    // Try modern clipboard API first, fall back to execCommand if denied
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(url);
-      } else {
+      await navigator.clipboard.writeText(url);
+    } catch (_) {
+      try {
         const el = document.createElement('textarea');
         el.value = url;
-        el.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+        el.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;z-index:-1';
         document.body.appendChild(el);
         el.focus();
         el.select();
         document.execCommand('copy');
         document.body.removeChild(el);
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
 
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
