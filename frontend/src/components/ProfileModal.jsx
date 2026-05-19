@@ -4,12 +4,21 @@ import { X, User as UserIcon, Loader2, Upload, Camera } from 'lucide-react';
 import Button from './Button';
 import api from '../services/api';
 
-export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
+export default function ProfileModal({ isOpen, onClose, user, onUpdate, refreshUser }) {
   const [name, setName] = useState(user?.name || '');
   const [profileImageUrl, setProfileImageUrl] = useState(user?.profileImageUrl || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
+
+  // Reset form values whenever the modal is opened
+  React.useEffect(() => {
+    if (isOpen) {
+      setName(user?.name || '');
+      setProfileImageUrl(user?.profileImageUrl || '');
+      setError('');
+    }
+  }, [isOpen, user]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -68,13 +77,14 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
         profileImageUrl: profileImageUrl.trim() || null,
       };
       const res = await api.patch('/users/me', payload);
+      // Update global user state immediately with server response
       onUpdate(res.data);
+      // Then re-fetch from server to guarantee full sync
+      if (refreshUser) await refreshUser();
       onClose();
     } catch (err) {
-      console.error('Failed to update profile (Full Error):', err);
-      console.error('Response Data:', err.response?.data);
-      console.error('Status:', err.response?.status);
-      setError(`Error ${err.response?.status}: ${err.response?.data?.message || err.message}`);
+      console.error('Profile update failed:', err);
+      setError(`Error ${err.response?.status ?? ''}: ${err.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
     }

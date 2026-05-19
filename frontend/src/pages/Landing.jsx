@@ -455,7 +455,7 @@ function LoggedInView({ user }) {
 /* Root Export                                             */
 /* ─────────────────────────────────────────────────────── */
 export default function Landing() {
-  const { user, logout, updateUserSession } = useAuth();
+  const { user, logout, updateUserSession, refreshUser } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   React.useEffect(() => {
@@ -473,7 +473,8 @@ export default function Landing() {
         isOpen={isProfileOpen} 
         onClose={() => setIsProfileOpen(false)} 
         user={user} 
-        onUpdate={updateUserSession} 
+        onUpdate={updateUserSession}
+        refreshUser={refreshUser}
       />
 
       <AnimatePresence mode="wait">

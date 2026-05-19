@@ -12,6 +12,18 @@ export function parseCoverImage(rawContent = '') {
   return { coverImageUrl: '', cleanContent: rawContent };
 }
 
+/** Strip markdown formatting markers from plain text (for card excerpts) */
+function stripMarkdown(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '$1')   // **bold**
+    .replace(/\*(.+?)\*/g, '$1')        // *italic*
+    .replace(/`(.+?)`/g, '$1')          // `code`
+    .replace(/^#{1,6}\s+/gm, '')        // # headings
+    .replace(/!?\[([^\]]*?)\]\([^)]*?\)/g, '$1') // [links](url)
+    .replace(/^[-*+]\s+/gm, '')         // list bullets
+    .replace(/^>\s+/gm, '');            // blockquotes
+}
+
 /** Normalize a backend post to the same shape ArticleCard + Post.jsx expect */
 export function normalizeBackendPost(post) {
   const { coverImageUrl, cleanContent } = parseCoverImage(post.content || '');
@@ -26,7 +38,7 @@ export function normalizeBackendPost(post) {
     rawContent: post.content,
     coverImageUrl,
     image: coverImageUrl || null,
-    excerpt: cleanContent.replace(/<[^>]*>/g, '').slice(0, 180) + (cleanContent.length > 180 ? '…' : ''),
+    excerpt: stripMarkdown(cleanContent.replace(/<[^>]*>/g, '')).slice(0, 180) + (cleanContent.length > 180 ? '…' : ''),
     tag: 'Blog',
     category: 'General',
     authorName: post.author?.username || 'Unknown',
