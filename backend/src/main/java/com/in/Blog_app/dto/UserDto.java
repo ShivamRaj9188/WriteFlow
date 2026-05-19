@@ -8,5 +8,7 @@ public class UserDto {
     private Long id;
     private String username;
     private String email;
+    private String name;
+    private String profileImageUrl;
     private Set<String> roles;
 }

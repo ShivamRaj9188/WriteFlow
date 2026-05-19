@@ -5,7 +5,7 @@ import api from './api';
  *  Returns { coverImageUrl: string, cleanContent: string }
  */
 export function parseCoverImage(rawContent = '') {
-  const match = rawContent.match(/^\[cover:(https?:\/\/[^\]]+)\]\n\n?([\s\S]*)$/);
+  const match = rawContent.match(/^\[cover:(https?:\/\/[^\]]+|data:image\/[^;]+;base64,[^\]]+)\][\s]*([\s\S]*)$/);
   if (match) {
     return { coverImageUrl: match[1].trim(), cleanContent: match[2] };
   }
