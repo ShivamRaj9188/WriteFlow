@@ -70,8 +70,17 @@ public class UserService {
         User user = userRepository.findByUsername(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Authenticated user not found"));
 
-        if (request.name() != null) user.setName(request.name());
-        if (request.profileImageUrl() != null) user.setProfileImageUrl(request.profileImageUrl());
+        if (request.name() != null && !request.name().trim().isEmpty()) {
+            user.setName(request.name().trim());
+        }
+        
+        if (request.profileImageUrl() != null) {
+            if (request.profileImageUrl().trim().isEmpty()) {
+                user.setProfileImageUrl(null);
+            } else {
+                user.setProfileImageUrl(request.profileImageUrl());
+            }
+        }
 
         return mapUser(userRepository.save(user));
     }

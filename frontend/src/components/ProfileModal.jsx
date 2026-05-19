@@ -76,14 +76,12 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate, refreshU
     try {
       const payload = {
         name: name.trim() || null,
-        profileImageUrl: profileImageUrl.trim() || null,
+        profileImageUrl: profileImageUrl, // Empty string tells backend to delete it
       };
       const res = await api.patch('/users/me', payload);
       // Immediately update global state with server response
       onUpdate(res.data);
       onClose();
-      // Background re-fetch to guarantee full sync (non-blocking)
-      if (refreshUser) refreshUser().catch(() => {});
     } catch (err) {
       console.error('Profile update failed:', err);
       const msg = err.response?.data?.message || err.message || 'Unknown error';
