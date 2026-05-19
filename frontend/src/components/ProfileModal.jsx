@@ -11,14 +11,16 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate, refreshU
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  // Reset form values whenever the modal is opened
+  // Reset form only when the modal opens — NOT on every user change.
+  // Having `user` in deps causes the photo to be cleared by context re-renders.
   React.useEffect(() => {
     if (isOpen) {
       setName(user?.name || '');
       setProfileImageUrl(user?.profileImageUrl || '');
       setError('');
     }
-  }, [isOpen, user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -77,14 +79,15 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate, refreshU
         profileImageUrl: profileImageUrl.trim() || null,
       };
       const res = await api.patch('/users/me', payload);
-      // Update global user state immediately with server response
+      // Immediately update global state with server response
       onUpdate(res.data);
-      // Then re-fetch from server to guarantee full sync
-      if (refreshUser) await refreshUser();
       onClose();
+      // Background re-fetch to guarantee full sync (non-blocking)
+      if (refreshUser) refreshUser().catch(() => {});
     } catch (err) {
       console.error('Profile update failed:', err);
-      setError(`Error ${err.response?.status ?? ''}: ${err.response?.data?.message || err.message}`);
+      const msg = err.response?.data?.message || err.message || 'Unknown error';
+      setError(`Save failed (${err.response?.status ?? 'network'}): ${msg}`);
     } finally {
       setLoading(false);
     }
