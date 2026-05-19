@@ -183,13 +183,19 @@ export default function WritePost() {
     if (!content.trim()) { setErrorMsg('Content is required.'); setStatus('error'); return; }
     if (title.length > TITLE_MAX) { setErrorMsg(`Title must be ≤ ${TITLE_MAX} characters.`); setStatus('error'); return; }
 
+    if (content.trim().length > CONTENT_MAX) {
+      setErrorMsg(`Text content must be ≤ ${CONTENT_MAX} characters.`);
+      setStatus('error');
+      return;
+    }
+
     // Encode cover image as a marker prepended to content
     const finalContent = coverImageUrl.trim()
       ? `[cover:${coverImageUrl.trim()}]\n\n${content.trim()}`
       : content.trim();
 
-    if (finalContent.length > CONTENT_MAX) {
-      setErrorMsg(`Content must be ≤ ${CONTENT_MAX} characters.`);
+    if (finalContent.length > 5000000) {
+      setErrorMsg(`Total post size including image is too large.`);
       setStatus('error');
       return;
     }

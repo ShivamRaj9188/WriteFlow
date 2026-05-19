@@ -35,7 +35,7 @@ public class PostServiceImpl implements PostService {
 
         Post post = new Post();
         post.setTitle(inputSanitizer.sanitizeSingleLineText(postRequest.getTitle(), 200, "title"));
-        post.setContent(inputSanitizer.sanitizeMultilineText(postRequest.getContent(), 10000, "content"));
+        post.setContent(inputSanitizer.sanitizeMultilineText(postRequest.getContent(), 5000000, "content"));
         post.setAuthor(user);
 
         Post savedPost = postRepository.save(post);
@@ -48,7 +48,7 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("Post", "id", postId));
 
         post.setTitle(inputSanitizer.sanitizeSingleLineText(postRequest.getTitle(), 200, "title"));
-        post.setContent(inputSanitizer.sanitizeMultilineText(postRequest.getContent(), 10000, "content"));
+        post.setContent(inputSanitizer.sanitizeMultilineText(postRequest.getContent(), 5000000, "content"));
 
         Post updatedPost = postRepository.save(post);
         return modelMapper.map(updatedPost, PostDto.class);

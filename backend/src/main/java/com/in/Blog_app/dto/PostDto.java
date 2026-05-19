@@ -18,7 +18,7 @@ public class PostDto {
     private String title;
 
     @NotBlank(message = "content is required")
-    @Size(max = 10000, message = "content must be at most 10000 characters")
+    @Size(max = 5000000, message = "content must be at most 5000000 characters")
     private String content;
 
     @Null(message = "author is managed by the server")
