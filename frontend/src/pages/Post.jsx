@@ -6,13 +6,12 @@ import { getArticleById, dummyArticles } from '../services/dummyData';
 import ArticleCard from '../components/ArticleCard';
 import EngagementBar from '../components/engagement/EngagementBar';
 import { recordView } from '../services/engagementApi';
-import { getPostFromApi, deletePost } from '../services/postsApi';
+import { getPostFromApi, deletePost, normalizeBackendPost } from '../services/postsApi';
 import { useAuth } from '../context/AuthContext';
 
 /* ── Reading progress bar ── */
 function ReadingProgress() {
   const [progress, setProgress] = useState(0);
-
   useEffect(() => {
     const update = () => {
       const scrollTop = window.scrollY;
@@ -22,7 +21,6 @@ function ReadingProgress() {
     window.addEventListener('scroll', update, { passive: true });
     return () => window.removeEventListener('scroll', update);
   }, []);
-
   return (
     <div className="fixed top-0 left-0 right-0 z-[100] h-[2px] bg-white/[0.06]">
       <motion.div
@@ -34,20 +32,7 @@ function ReadingProgress() {
   );
 }
 
-/* ── Derive read-time from text ── */
-function estimateReadTime(text = '') {
-  const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
-  const mins = Math.ceil(words / 200);
-  return mins < 1 ? '1 min read' : `${mins} min read`;
-}
-
-/* ── Format backend date ── */
-function formatDate(iso) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-/* ── Render plain text as HTML paragraphs (for backend posts) ── */
+/* ── Render plain-text content with markdown-ish formatting ── */
 function PlainTextContent({ text = '' }) {
   const paras = text
     .split(/\n{2,}/)
@@ -58,7 +43,6 @@ function PlainTextContent({ text = '' }) {
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/\n/g, '<br/>')
     );
-
   return (
     <div className="prose-content">
       {paras.map((p, i) => (
@@ -74,8 +58,12 @@ export default function Post() {
   const { user } = useAuth();
   const heroRef = useRef(null);
 
-  const [backendPost, setBackendPost] = useState(null);
+  // State: either a normalized backend post OR a dummy article OR null
+  const [article, setArticle] = useState(null);
+  const [isBackendPost, setIsBackendPost] = useState(false);
   const [loadingPost, setLoadingPost] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -84,18 +72,44 @@ export default function Post() {
   const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '25%']);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
-  /* Try to load from backend; fall back to dummy data */
+  /* Load post — backend first, then fall back to dummy data if backend has no match */
   useEffect(() => {
     setLoadingPost(true);
-    setBackendPost(null);
+    setNotFound(false);
+    setArticle(null);
+    setIsBackendPost(false);
 
     const numericId = Number(id);
-    if (!isNaN(numericId) && numericId > 0) {
+    const isNumeric = !isNaN(numericId) && numericId > 0;
+
+    if (isNumeric) {
+      // Try the backend first
       getPostFromApi(id)
-        .then((res) => setBackendPost(res.data))
-        .catch(() => setBackendPost(null)) // falls back to dummy
+        .then((res) => {
+          // Backend has this post — always show it (even if ID collides with a dummy)
+          setArticle(normalizeBackendPost(res.data));
+          setIsBackendPost(true);
+        })
+        .catch(() => {
+          // Backend doesn't have it — fall back to dummy data (e.g. user clicked a demo card)
+          const dummy = getArticleById(id);
+          if (dummy) {
+            setArticle(dummy);
+            setIsBackendPost(false);
+          } else {
+            setNotFound(true);
+          }
+        })
         .finally(() => setLoadingPost(false));
     } else {
+      // Non-numeric slug → dummy articles only
+      const dummy = getArticleById(id);
+      if (dummy) {
+        setArticle(dummy);
+        setIsBackendPost(false);
+      } else {
+        setNotFound(true);
+      }
       setLoadingPost(false);
     }
   }, [id]);
@@ -106,7 +120,7 @@ export default function Post() {
     if (id) recordView(id).catch(() => {});
   }, [id]);
 
-  /* ─── Delete handler ─── */
+  /* Delete handler */
   const handleDelete = async () => {
     if (!deleteConfirm) { setDeleteConfirm(true); return; }
     setDeleting(true);
@@ -129,40 +143,27 @@ export default function Post() {
     );
   }
 
-  /* ─── Resolve article data (backend vs dummy) ─── */
-  const isDummyOnly = !backendPost;
-  const dummyArticle = isDummyOnly ? getArticleById(id) : null;
-
-  if (isDummyOnly && !dummyArticle) {
+  /* Not found */
+  if (notFound || !article) {
     return (
       <div className="min-h-screen bg-[#030303] flex flex-col items-center justify-center text-white gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-2">
+          <AlertCircle className="w-7 h-7 text-gray-600" />
+        </div>
         <h1 className="text-2xl font-bold">Article not found</h1>
-        <Link to="/" className="text-[#818cf8] hover:underline text-sm">← Back to home</Link>
+        <p className="text-gray-500 text-sm">This post may have been deleted or doesn't exist.</p>
+        <Link to="/" className="text-[#818cf8] hover:underline text-sm mt-2">← Back to home</Link>
       </div>
     );
   }
 
-  /* Normalise fields for rendering */
-  const article = isDummyOnly
-    ? dummyArticle
-    : {
-        id: backendPost.id,
-        title: backendPost.title,
-        content: backendPost.content,   // plain text
-        excerpt: (backendPost.content || '').slice(0, 200) + '…',
-        tag: 'Blog',
-        authorName: backendPost.author?.username || 'Unknown',
-        authorAvatar: null,
-        date: formatDate(backendPost.createdAt),
-        readTime: estimateReadTime(backendPost.content),
-        image: null,
-        isBackendPost: true,
-      };
+  const isAuthor = user && isBackendPost && article.authorName === user.username;
 
-  const isAuthor =
-    user && backendPost && backendPost.author?.username === user.username;
-
+  /* Related articles — always dummy for now, filtered so current dummy doesn't appear */
   const related = dummyArticles.filter((a) => a.id !== id).slice(0, 3);
+
+  /* Determine if we have a hero image */
+  const heroImage = article.image || article.coverImageUrl || null;
 
   return (
     <div className="min-h-screen bg-[#030303] text-white selection:bg-purple-500/30">
@@ -186,7 +187,7 @@ export default function Post() {
         </Link>
 
         {/* Author actions (edit / delete) */}
-        {isAuthor && (
+        {isAuthor ? (
           <div className="flex items-center gap-2">
             <Link
               to={`/post/${id}/edit`}
@@ -208,10 +209,9 @@ export default function Post() {
               {deleteConfirm ? 'Confirm?' : 'Delete'}
             </button>
           </div>
+        ) : (
+          <div className="w-24" />
         )}
-
-        {/* Fallback spacer so logo stays centered when no author actions */}
-        {!isAuthor && <div className="w-24" />}
       </nav>
 
       {/* Delete error toast */}
@@ -230,11 +230,11 @@ export default function Post() {
       </AnimatePresence>
 
       {/* ── Hero ── */}
-      {article.image ? (
-        /* Dummy article with hero image */
+      {heroImage ? (
+        /* Full parallax hero image — same for both backend and dummy articles */
         <div ref={heroRef} className="relative w-full h-[60vh] md:h-[70vh] overflow-hidden mt-[57px]">
           <motion.img
-            src={article.image}
+            src={heroImage}
             alt={article.title}
             className="absolute inset-0 w-full h-full object-cover"
             style={{ y: heroY, opacity: heroOpacity }}
@@ -255,16 +255,22 @@ export default function Post() {
             </h1>
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
               <div className="flex items-center gap-2">
-                <img src={article.authorAvatar} alt={article.authorName} className="w-7 h-7 rounded-full object-cover border border-white/10" />
+                {article.authorAvatar ? (
+                  <img src={article.authorAvatar} alt={article.authorName} className="w-7 h-7 rounded-full object-cover border border-white/10" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">{(article.authorName || '?')[0].toUpperCase()}</span>
+                  </div>
+                )}
                 <span className="font-semibold text-gray-300">{article.authorName}</span>
               </div>
-              <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /><span>{article.date}</span></div>
+              {article.date && <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /><span>{article.date}</span></div>}
               <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /><span>{article.readTime}</span></div>
             </div>
           </motion.div>
         </div>
       ) : (
-        /* Backend post — gradient hero banner */
+        /* No image — gradient header banner, same cohesive style */
         <div className="mt-[57px] w-full pt-16 pb-12 px-6 max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -272,16 +278,20 @@ export default function Post() {
             transition={{ duration: 0.6, delay: 0.1 }}
           >
             <span className="inline-block px-3 py-1 mb-4 rounded-full bg-[#4f46e5]/20 text-[#818cf8] text-[10px] font-bold tracking-wider uppercase border border-[#4f46e5]/30">
-              {article.tag}
+              {article.tag || 'Blog'}
             </span>
             <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-6 max-w-3xl">
               {article.title}
             </h1>
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">{(article.authorName || '?')[0].toUpperCase()}</span>
-                </div>
+                {article.authorAvatar ? (
+                  <img src={article.authorAvatar} alt={article.authorName} className="w-7 h-7 rounded-full object-cover border border-white/10" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">{(article.authorName || '?')[0].toUpperCase()}</span>
+                  </div>
+                )}
                 <span className="font-semibold text-gray-300">{article.authorName}</span>
               </div>
               {article.date && <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /><span>{article.date}</span></div>}
@@ -298,25 +308,25 @@ export default function Post() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
       >
-        {/* Excerpt / intro */}
-        {article.excerpt && (
+        {/* Excerpt / intro — only if there's a distinct excerpt (dummy articles) */}
+        {article.excerpt && !isBackendPost && (
           <p className="text-lg md:text-xl text-gray-300 leading-relaxed font-medium border-l-2 border-[#4f46e5] pl-5 mb-10 italic">
             {article.excerpt}
           </p>
         )}
 
         {/* Content */}
-        {article.isBackendPost ? (
+        {isBackendPost ? (
           <PlainTextContent text={article.content} />
         ) : (
           <div className="prose-content" dangerouslySetInnerHTML={{ __html: article.content }} />
         )}
 
-        {/* Engagement Bar */}
+        {/* Engagement Bar — for ALL articles (backend gets real data, dummy gets fallback) */}
         <EngagementBar postId={id} />
       </motion.div>
 
-      {/* ── Related Articles ── */}
+      {/* ── Continue Reading ── */}
       <div className="max-w-5xl mx-auto px-6 pb-24">
         <div className="border-t border-white/[0.06] pt-12">
           <h2 className="text-xl font-extrabold text-white tracking-tight mb-6">Continue Reading</h2>

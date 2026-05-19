@@ -59,6 +59,18 @@ public class PostController {
         return ResponseEntity.ok(postService.getAllPosts(pageable));
     }
 
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<Page<PostDto>> getMyPosts(
+            @AuthenticationPrincipal UserPrincipal userDetails,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size
+    ) {
+        Sort sort = Sort.by("createdAt").descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return ResponseEntity.ok(postService.getMyPosts(userDetails.getId(), pageable));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<PostDto> getPostById(@PathVariable @Positive(message = "Post id must be positive") Long id) {
         return ResponseEntity.ok(postService.getPostById(id));

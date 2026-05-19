@@ -14,10 +14,13 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class PostServiceImpl implements PostService {
 
     private final PostRepository postRepository;
@@ -68,6 +71,12 @@ public class PostServiceImpl implements PostService {
     @Override
     public Page<PostDto> getAllPosts(Pageable pageable) {
         Page<Post> posts = postRepository.findAll(pageable);
+        return posts.map(post -> modelMapper.map(post, PostDto.class));
+    }
+
+    @Override
+    public Page<PostDto> getMyPosts(Long userId, Pageable pageable) {
+        Page<Post> posts = postRepository.findByAuthorId(userId, pageable);
         return posts.map(post -> modelMapper.map(post, PostDto.class));
     }
 }

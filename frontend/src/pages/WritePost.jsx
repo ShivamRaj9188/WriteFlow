@@ -3,10 +3,10 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Rss, Eye, Edit3, Send, Loader2,
-  CheckCircle2, AlertCircle, Trash2, RefreshCw, AlignLeft,
+  CheckCircle2, AlertCircle, Trash2, AlignLeft, Image as ImageIcon, X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { createPost, updatePost, getPostFromApi, deletePost } from '../services/postsApi';
+import { createPost, updatePost, getPostFromApi, deletePost, parseCoverImage } from '../services/postsApi';
 
 /* ─── constants ─── */
 const TITLE_MAX = 200;
@@ -23,7 +23,7 @@ function readTime(text) {
   return mins < 1 ? '< 1 min read' : `${mins} min read`;
 }
 
-/* ─── Floating background orbs (shared style) ─── */
+/* ─── Floating background orbs ─── */
 function BackgroundOrbs() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -35,8 +35,7 @@ function BackgroundOrbs() {
 }
 
 /* ─── markdown-ish preview renderer ─── */
-function Preview({ title, content }) {
-  // Simple preview: newlines → paragraphs, **bold**, `code`
+function Preview({ title, content, coverImageUrl }) {
   const rendered = content
     .split(/\n{2,}/)
     .map((para) =>
@@ -55,6 +54,11 @@ function Preview({ title, content }) {
       transition={{ duration: 0.25 }}
       className="max-w-2xl mx-auto"
     >
+      {coverImageUrl && (
+        <div className="w-full h-64 rounded-2xl overflow-hidden mb-8 border border-white/[0.06]">
+          <img src={coverImageUrl} alt="Cover" className="w-full h-full object-cover" />
+        </div>
+      )}
       {title && (
         <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-tight mb-10">
           {title}
@@ -74,18 +78,19 @@ function Preview({ title, content }) {
 /* ─── main page ─── */
 export default function WritePost() {
   const navigate = useNavigate();
-  const { id: postId } = useParams();        // present on /post/:id/edit
+  const { id: postId } = useParams();
   const { user } = useAuth();
 
   const isEditMode = Boolean(postId);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [mode, setMode] = useState('write'); // 'write' | 'preview'
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [mode, setMode] = useState('write');
 
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(isEditMode);
-  const [status, setStatus] = useState(null); // null | 'success' | 'error'
+  const [status, setStatus] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -104,13 +109,15 @@ export default function WritePost() {
     getPostFromApi(postId)
       .then((res) => {
         const post = res.data;
-        // Only the author can edit
         if (post.author?.username !== user?.username) {
           navigate('/', { replace: true });
           return;
         }
+        // Parse cover image from content marker
+        const { coverImageUrl: parsedCover, cleanContent } = parseCoverImage(post.content || '');
         setTitle(post.title || '');
-        setContent(post.content || '');
+        setContent(cleanContent);
+        setCoverImageUrl(parsedCover);
       })
       .catch(() => navigate('/', { replace: true }))
       .finally(() => setFetchLoading(false));
@@ -128,14 +135,24 @@ export default function WritePost() {
     if (!title.trim()) { setErrorMsg('Title is required.'); setStatus('error'); return; }
     if (!content.trim()) { setErrorMsg('Content is required.'); setStatus('error'); return; }
     if (title.length > TITLE_MAX) { setErrorMsg(`Title must be ≤ ${TITLE_MAX} characters.`); setStatus('error'); return; }
-    if (content.length > CONTENT_MAX) { setErrorMsg(`Content must be ≤ ${CONTENT_MAX} characters.`); setStatus('error'); return; }
+
+    // Encode cover image as a marker prepended to content
+    const finalContent = coverImageUrl.trim()
+      ? `[cover:${coverImageUrl.trim()}]\n\n${content.trim()}`
+      : content.trim();
+
+    if (finalContent.length > CONTENT_MAX) {
+      setErrorMsg(`Content must be ≤ ${CONTENT_MAX} characters.`);
+      setStatus('error');
+      return;
+    }
 
     setLoading(true);
     setStatus(null);
     try {
       const fn = isEditMode
-        ? updatePost(postId, title.trim(), content.trim())
-        : createPost(title.trim(), content.trim());
+        ? updatePost(postId, title.trim(), finalContent)
+        : createPost(title.trim(), finalContent);
       const res = await fn;
       setStatus('success');
       setTimeout(() => navigate(`/post/${res.data.id}`), 1200);
@@ -148,7 +165,7 @@ export default function WritePost() {
     } finally {
       setLoading(false);
     }
-  }, [title, content, isEditMode, postId, navigate]);
+  }, [title, content, coverImageUrl, isEditMode, postId, navigate]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteConfirm) { setDeleteConfirm(true); return; }
@@ -182,7 +199,6 @@ export default function WritePost() {
 
       {/* ── Top Nav ── */}
       <nav className="fixed top-0 w-full z-50 px-6 py-4 flex items-center justify-between border-b border-white/[0.04] bg-[#030303]/90 backdrop-blur-xl">
-        {/* Back + Logo */}
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
@@ -200,7 +216,6 @@ export default function WritePost() {
           </Link>
         </div>
 
-        {/* Mode toggle + Actions */}
         <div className="flex items-center gap-3">
           {/* Write / Preview toggle */}
           <div className="flex items-center rounded-full bg-white/[0.04] border border-white/[0.08] p-1 gap-1">
@@ -321,6 +336,63 @@ export default function WritePost() {
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.25 }}
               >
+                {/* ── Cover Image Section (always visible) ── */}
+                <div className="mb-8">
+                  {!coverImageUrl ? (
+                    /* Empty state — dashed upload zone */
+                    <div
+                      onClick={() => document.getElementById('cover-image-url').focus()}
+                      className="w-full rounded-2xl border-2 border-dashed border-white/[0.10] bg-white/[0.02] hover:border-[#4f46e5]/40 hover:bg-white/[0.04] transition-all duration-300 cursor-pointer p-8 flex flex-col items-center justify-center gap-3 group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-[#4f46e5]/10 border border-[#4f46e5]/20 flex items-center justify-center group-hover:bg-[#4f46e5]/20 transition-all">
+                        <ImageIcon className="w-5 h-5 text-[#818cf8]" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-semibold text-gray-400 group-hover:text-white transition-colors">Add a cover image</p>
+                        <p className="text-xs text-gray-600 mt-0.5">Paste an image URL below to add a cover photo</p>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Preview of cover image */
+                    <div className="relative w-full rounded-2xl overflow-hidden border border-white/[0.08] group">
+                      <img
+                        src={coverImageUrl}
+                        alt="Cover preview"
+                        className="w-full h-52 object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      <button
+                        onClick={() => setCoverImageUrl('')}
+                        className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-black/60 border border-white/20 text-white hover:bg-red-500/80 hover:border-red-400/50 transition-all backdrop-blur-sm"
+                      >
+                        <X className="w-3 h-3" /> Remove
+                      </button>
+                    </div>
+                  )}
+                  {/* URL input — always shown below the zone */}
+                  <div className="flex items-center gap-2 mt-3">
+                    <ImageIcon className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" />
+                    <input
+                      id="cover-image-url"
+                      type="url"
+                      value={coverImageUrl}
+                      onChange={(e) => setCoverImageUrl(e.target.value)}
+                      placeholder="Paste cover image URL (e.g. https://images.unsplash.com/...)"
+                      className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-[#4f46e5]/50 focus:bg-white/[0.05] transition-all"
+                    />
+                    {coverImageUrl && (
+                      <button
+                        onClick={() => setCoverImageUrl('')}
+                        className="p-2 rounded-lg hover:bg-white/[0.05] text-gray-600 hover:text-gray-300 transition-all flex-shrink-0"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+
                 {/* Title */}
                 <div className="relative mb-6">
                   <input
@@ -330,7 +402,7 @@ export default function WritePost() {
                     onChange={(e) => { setTitle(e.target.value); setStatus(null); }}
                     placeholder="Your story title…"
                     maxLength={TITLE_MAX}
-                    className="w-full bg-transparent text-4xl md:text-5xl font-black text-white placeholder-white/10 tracking-tighter leading-tight border-none outline-none resize-none py-2"
+                    className="w-full bg-transparent text-4xl md:text-5xl font-black text-white placeholder-white/30 tracking-tighter leading-tight border-none outline-none resize-none py-2"
                   />
                   <div className="h-px bg-gradient-to-r from-[#4f46e5]/50 via-[#7c3aed]/20 to-transparent mt-2" />
                   {titleLeft < 50 && (
@@ -349,10 +421,9 @@ export default function WritePost() {
                     onChange={(e) => { setContent(e.target.value); setStatus(null); }}
                     placeholder={`Start writing your story…\n\nUse **bold**, *italic*, or \`code\` for formatting.\nSeparate paragraphs with a blank line.`}
                     maxLength={CONTENT_MAX}
-                    className="w-full min-h-[320px] bg-transparent text-gray-300 text-lg leading-relaxed placeholder-white/[0.06] border-none outline-none resize-none font-light"
+                    className="w-full min-h-[320px] bg-transparent text-gray-200 text-lg leading-relaxed placeholder-white/25 border-none outline-none resize-none font-light"
                     style={{ lineHeight: '1.8', fontFamily: "'SF Mono', 'Fira Code', monospace" }}
                     onKeyDown={(e) => {
-                      // Tab key → insert 2 spaces
                       if (e.key === 'Tab') {
                         e.preventDefault();
                         const start = e.target.selectionStart;
@@ -378,8 +449,7 @@ export default function WritePost() {
                 </div>
               </motion.div>
             ) : (
-              /* Preview mode */
-              <Preview title={title} content={content} />
+              <Preview title={title} content={content} coverImageUrl={coverImageUrl} />
             )}
           </AnimatePresence>
         </div>

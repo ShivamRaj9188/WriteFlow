@@ -15,6 +15,9 @@ export const dummyArticles = [
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80",
     readTime: "8 min read",
     date: "Apr 6, 2026",
+    likes: 83,
+    views: 275,
+    shares: 14,
     content: `
       <h2>The Rise of Microservices</h2>
       <p>In the modern software landscape, monolithic applications are increasingly giving way to microservices architectures. Spring Boot has emerged as the de facto standard for building these services on the JVM, offering an opinionated, production-ready platform that dramatically reduces boilerplate.</p>
@@ -60,6 +63,9 @@ public InventoryResponse checkInventory(String skuCode) {
       "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=80&h=80",
     readTime: "12 min read",
     date: "Apr 5, 2026",
+    likes: 34,
+    views: 883,
+    shares: 29,
     content: `
       <h2>The New Threat Landscape</h2>
       <p>Cyber threats in 2026 are faster, more sophisticated, and increasingly automated. Traditional signature-based defenses struggle to keep pace. The industry's answer? Turn AI against itself — use machine learning to detect and neutralize threats in real time.</p>
@@ -95,6 +101,9 @@ public InventoryResponse checkInventory(String skuCode) {
       "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=80&h=80",
     readTime: "10 min read",
     date: "Apr 4, 2026",
+    likes: 97,
+    views: 437,
+    shares: 21,
     content: `
       <h2>What is Glassmorphism?</h2>
       <p>Glassmorphism is a design trend characterized by frosted glass-like UI elements: semi-transparent backgrounds, subtle borders, and significant backdrop blur. It creates a rich sense of depth and layering that feels premium and modern.</p>
@@ -140,6 +149,9 @@ public InventoryResponse checkInventory(String skuCode) {
       "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=80&h=80",
     readTime: "15 min read",
     date: "Apr 3, 2026",
+    likes: 121,
+    views: 1204,
+    shares: 47,
     content: `
       <h2>The Server Component Revolution</h2>
       <p>React Server Components (RSC) allow components to run exclusively on the server, fetching data directly from databases or APIs without ever sending that logic to the client. This is a fundamental shift in the React mental model — the component tree now spans server and client boundaries.</p>
@@ -175,6 +187,9 @@ public InventoryResponse checkInventory(String skuCode) {
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80",
     readTime: "11 min read",
     date: "Apr 2, 2026",
+    likes: 58,
+    views: 692,
+    shares: 18,
     content: `
       <h2>Diagnosing with EXPLAIN ANALYZE</h2>
       <p>Before you can fix a slow query, you need to understand why it's slow. <code>EXPLAIN ANALYZE</code> is your X-ray machine. It shows the query plan PostgreSQL chose and, critically, the actual execution times and row counts at each step.</p>
@@ -213,6 +228,9 @@ public InventoryResponse checkInventory(String skuCode) {
       "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=80&h=80",
     readTime: "14 min read",
     date: "Apr 1, 2026",
+    likes: 76,
+    views: 541,
+    shares: 33,
     content: `
       <h2>Writing Production-Grade Dockerfiles</h2>
       <p>Most developers write Dockerfiles that work. Fewer write Dockerfiles that are secure, minimal, and fast to build. Key principles: use <strong>multi-stage builds</strong> to separate build dependencies from the runtime image, use a <strong>non-root user</strong>, and always pin your base image versions.</p>
@@ -255,6 +273,9 @@ CMD ["node", "server.js"]</code></pre>
       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=80&h=80",
     readTime: "7 min read",
     date: "Mar 31, 2026",
+    likes: 44,
+    views: 318,
+    shares: 11,
     content: `
       <h2>Why Engineers Need to Write Well</h2>
       <p>Code is read far more often than it's written. The same is true of technical documentation. Your architecture decision record, API documentation, or internal design proposal will be read by dozens of engineers over years. Clarity here is a force multiplier.</p>
@@ -286,6 +307,9 @@ CMD ["node", "server.js"]</code></pre>
       "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&w=80&h=80",
     readTime: "13 min read",
     date: "Mar 30, 2026",
+    likes: 62,
+    views: 489,
+    shares: 25,
     content: `
       <h2>Why FastAPI is Different</h2>
       <p>FastAPI isn't just another Python web framework. It's built on Pydantic and Starlette, giving it three standout properties: automatic OpenAPI documentation, full type safety enforced at runtime, and native async/await support. Together, these make it the ideal choice for high-performance, developer-friendly APIs.</p>

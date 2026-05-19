@@ -11,4 +11,5 @@ public interface PostService {
     void deletePost(Long postId, Long userId);
     PostDto getPostById(Long postId);
     Page<PostDto> getAllPosts(Pageable pageable);
+    Page<PostDto> getMyPosts(Long userId, Pageable pageable);
 }

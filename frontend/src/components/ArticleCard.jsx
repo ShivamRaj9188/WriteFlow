@@ -30,12 +30,18 @@ export default function ArticleCard({ post, className }) {
       {/* Top Image Section */}
       <div className="relative h-48 w-full overflow-hidden p-2 pb-0 rounded-t-2xl">
         <div className="w-full h-full rounded-xl overflow-hidden relative">
-          <img
-            src={post.image}
-            alt={post.title}
-            className="w-full h-full object-cover grayscale opacity-80 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-500"
-          />
-          {/* Arrow icon in bottom-right of image */}
+          {post.image ? (
+            <img
+              src={post.image}
+              alt={post.title}
+              className="w-full h-full object-cover grayscale opacity-80 hover:grayscale-0 hover:opacity-100 hover:scale-105 transition-all duration-500"
+            />
+          ) : (
+            /* Gradient placeholder for posts without a cover image */
+            <div className="w-full h-full bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#4c1d95] flex items-center justify-center">
+              <span className="text-white/20 text-xs font-semibold uppercase tracking-widest">No Cover</span>
+            </div>
+          )}
           <motion.div
             whileHover={{ x: 2, y: -2 }}
             className="absolute bottom-2 right-2 flex items-center justify-center w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-colors cursor-pointer group"
@@ -66,33 +72,41 @@ export default function ArticleCard({ post, className }) {
 
         <div className="flex-grow" />
 
-        {/* Footer: Author, Read Time & Engagement */}
+        {/* Footer */}
         <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-white/[0.05]">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <img
-                src={post.authorAvatar}
-                alt={post.authorName}
-                className="w-6 h-6 rounded-full object-cover border border-white/10"
-              />
+              {post.authorAvatar ? (
+                <img
+                  src={post.authorAvatar}
+                  alt={post.authorName}
+                  className="w-6 h-6 rounded-full object-cover border border-white/10"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-[9px] font-bold">
+                    {(post.authorName || '?')[0].toUpperCase()}
+                  </span>
+                </div>
+              )}
               <span className="text-xs font-semibold text-gray-300">
-                {post.authorName}
+                {post.authorName || 'Unknown'}
               </span>
             </div>
             <span className="text-xs text-gray-500 font-medium">
               {post.readTime}
             </span>
           </div>
-          {/* Quick engagement stats */}
+          {/* Stable engagement stats — no Math.random() */}
           <div className="flex items-center justify-between text-gray-600 text-xs font-medium">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1 hover:text-pink-400 transition-colors">
                 <Heart className="w-3 h-3" />
-                {post.likes ?? Math.floor(Math.random() * 150 + 12)}
+                {post.likes ?? 0}
               </span>
               <span className="flex items-center gap-1 hover:text-sky-400 transition-colors">
                 <Eye className="w-3 h-3" />
-                {post.views ?? Math.floor(Math.random() * 900 + 100)}
+                {post.views ?? 0}
               </span>
             </div>
             <Bookmark className="w-3 h-3 hover:text-yellow-400 transition-colors" />

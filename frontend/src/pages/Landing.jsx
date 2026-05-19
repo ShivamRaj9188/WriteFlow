@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, LogOut, Zap, Shield, BookOpen, Rss, TrendingUp, User, Bookmark, PenLine } from 'lucide-react';
+import { ArrowRight, LogOut, Zap, Shield, BookOpen, Rss, TrendingUp, User, Bookmark, PenLine, FileText, Loader2 } from 'lucide-react';
 import Button from '../components/Button';
 import ArticleCard from '../components/ArticleCard';
 import ProfileModal from '../components/ProfileModal';
 import { useAuth } from '../context/AuthContext';
 import { dummyArticles, categories } from '../services/dummyData';
+import { getPosts, getMyPosts, normalizeBackendPost } from '../services/postsApi';
 
 /* ─────────────────────────────────────────────────────── */
 /* Floating background orbs                                */
@@ -222,34 +223,71 @@ function LoggedOutView() {
 /* ─────────────────────────────────────────────────────── */
 function LoggedInView({ user }) {
   const [activeCategory, setActiveCategory] = useState('All');
-  const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'bookmarks'
+  const [activeTab, setActiveTab] = useState('feed'); // 'feed' | 'mine' | 'bookmarks'
   const [bookmarkedIds, setBookmarkedIds] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('wf_bookmarks') || '[]');
-    } catch { return []; }
+    try { return JSON.parse(localStorage.getItem('wf_bookmarks') || '[]'); } catch { return []; }
   });
 
-  // Keep bookmarks in sync across the app via storage events
+  // Real backend posts
+  const [backendPosts, setBackendPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+
+  // My Posts — separate fetch using the /api/posts/my endpoint
+  const [myPosts, setMyPosts] = useState([]);
+  const [loadingMyPosts, setLoadingMyPosts] = useState(true);
+
+  const fetchPosts = useCallback(async () => {
+    setLoadingPosts(true);
+    try {
+      const res = await getPosts(0, 20);
+      const normalized = (res.data?.content || []).map(normalizeBackendPost);
+      setBackendPosts(normalized);
+    } catch {
+      setBackendPosts([]);
+    } finally {
+      setLoadingPosts(false);
+    }
+  }, []);
+
+  const fetchMyPosts = useCallback(async () => {
+    setLoadingMyPosts(true);
+    try {
+      const res = await getMyPosts(0, 20);
+      const normalized = (res.data?.content || []).map(normalizeBackendPost);
+      setMyPosts(normalized);
+    } catch {
+      setMyPosts([]);
+    } finally {
+      setLoadingMyPosts(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchPosts(); fetchMyPosts(); }, [fetchPosts, fetchMyPosts]);
+
+  // Sync bookmarks across tabs
   React.useEffect(() => {
     const sync = () => {
-      try {
-        setBookmarkedIds(JSON.parse(localStorage.getItem('wf_bookmarks') || '[]'));
-      } catch {}
+      try { setBookmarkedIds(JSON.parse(localStorage.getItem('wf_bookmarks') || '[]')); } catch {}
     };
     window.addEventListener('storage', sync);
     window.addEventListener('wf_bookmark_changed', sync);
-    return () => {
-      window.removeEventListener('storage', sync);
-      window.removeEventListener('wf_bookmark_changed', sync);
-    };
+    return () => { window.removeEventListener('storage', sync); window.removeEventListener('wf_bookmark_changed', sync); };
   }, []);
+
+  // Merge: real backend posts first, then dummy articles (deduplicated by id)
+  const backendIds = new Set(backendPosts.map(p => p.id));
+  const allPosts = [
+    ...backendPosts,
+    ...dummyArticles.filter(a => !backendIds.has(a.id)),
+  ];
 
   const filtered =
     activeCategory === 'All'
-      ? dummyArticles
-      : dummyArticles.filter((a) => a.category === activeCategory);
+      ? allPosts
+      : allPosts.filter((a) => a.category === activeCategory);
 
-  const bookmarkedArticles = dummyArticles.filter(a => bookmarkedIds.includes(a.id));
+  const bookmarkedArticles = allPosts.filter(a => bookmarkedIds.includes(String(a.id)));
+
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -257,6 +295,12 @@ function LoggedInView({ user }) {
     if (h < 18) return 'Good afternoon';
     return 'Good evening';
   };
+
+  const tabs = [
+    { id: 'feed', label: 'Feed' },
+    { id: 'mine', label: 'My Posts', icon: <FileText className="w-3.5 h-3.5" />, count: myPosts.length },
+    { id: 'bookmarks', label: 'Bookmarks', icon: <Bookmark className="w-3.5 h-3.5" />, count: bookmarkedIds.length },
+  ];
 
   return (
     <div className="pt-24 max-w-5xl mx-auto px-6 pb-24">
@@ -278,9 +322,9 @@ function LoggedInView({ user }) {
         </p>
       </motion.div>
 
-      {/* ── Feed / Bookmarks Tabs ── */}
+      {/* ── Tabs ── */}
       <div className="flex items-center gap-1 mb-8 border-b border-white/[0.06] pb-0">
-        {[{ id: 'feed', label: 'Feed' }, { id: 'bookmarks', label: 'Bookmarks', icon: <Bookmark className="w-3.5 h-3.5" /> }].map(tab => (
+        {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -292,65 +336,95 @@ function LoggedInView({ user }) {
           >
             {tab.icon}
             {tab.label}
-            {tab.id === 'bookmarks' && bookmarkedIds.length > 0 && (
+            {tab.count > 0 && (
               <span className="ml-1 px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-[10px] font-bold">
-                {bookmarkedIds.length}
+                {tab.count}
               </span>
             )}
           </button>
         ))}
       </div>
 
-      {activeTab === 'feed' ? (
-        <>
-          {/* ── Category Pills ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="flex flex-wrap gap-2 mb-10"
-          >
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border ${
-                  activeCategory === cat
-                    ? 'bg-[#4f46e5] border-[#4f46e5] text-white shadow-lg shadow-purple-900/30'
-                    : 'border-white/[0.08] text-gray-400 hover:text-white hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05]'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </motion.div>
+      <AnimatePresence mode="wait">
 
-          {/* ── Article Grid ── */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeCategory}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            >
-              {filtered.map((article) => (
-                <ArticleCard key={article.id} post={article} />
+        {/* ── Feed Tab ── */}
+        {activeTab === 'feed' && (
+          <motion.div key="feed" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
+            {/* Category Pills */}
+            <div className="flex flex-wrap gap-2 mb-10">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border ${
+                    activeCategory === cat
+                      ? 'bg-[#4f46e5] border-[#4f46e5] text-white shadow-lg shadow-purple-900/30'
+                      : 'border-white/[0.08] text-gray-400 hover:text-white hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.05]'
+                  }`}
+                >
+                  {cat}
+                </button>
               ))}
-            </motion.div>
-          </AnimatePresence>
-        </>
-      ) : (
-        /* ── Bookmarks Tab ── */
-        <AnimatePresence mode="wait">
-          <motion.div
-            key="bookmarks"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
+            </div>
+            {loadingPosts ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-7 h-7 text-[#6366f1] animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filtered.map((article) => (
+                  <motion.div
+                    key={article.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ArticleCard post={article} />
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ── My Posts Tab ── */}
+        {activeTab === 'mine' && (
+          <motion.div key="mine" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
+            {loadingMyPosts ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-7 h-7 text-[#6366f1] animate-spin" />
+              </div>
+            ) : myPosts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+                  <PenLine className="w-7 h-7 text-gray-600" />
+                </div>
+                <h3 className="text-lg font-bold text-white">No posts yet</h3>
+                <p className="text-gray-500 text-sm max-w-xs">
+                  Hit <strong className="text-gray-300">Write</strong> in the nav to publish your first story.
+                </p>
+                <Link
+                  to="/write"
+                  className="mt-2 flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] text-white shadow-lg shadow-purple-900/30 hover:shadow-purple-900/50 transition-all"
+                >
+                  <PenLine className="w-4 h-4" /> Write your first post
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {myPosts.map((post) => (
+                  <motion.div key={post.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    <ArticleCard post={post} />
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ── Bookmarks Tab ── */}
+        {activeTab === 'bookmarks' && (
+          <motion.div key="bookmarks" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
             {bookmarkedArticles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
@@ -369,11 +443,13 @@ function LoggedInView({ user }) {
               </div>
             )}
           </motion.div>
-        </AnimatePresence>
-      )}
+        )}
+
+      </AnimatePresence>
     </div>
   );
 }
+
 
 /* ─────────────────────────────────────────────────────── */
 /* Root Export                                             */

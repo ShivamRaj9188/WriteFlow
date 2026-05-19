@@ -131,3 +131,94 @@ Blog/
 2.  **No CORS Issues:** The Frontend serves static files via Nginx. Any request to `http://localhost/api/*` is internally routed through the secure Docker network to the Spring Boot backend (`http://backend:8080/api/*`) by the Nginx reverse proxy.
 3.  **Multi-stage Builds:** Extremely lightweight production images with no build-time overhead (e.g. Maven/Node) in the final containers.
 
+---
+
+## 9. Engagement Module
+
+WriteFlow includes a comprehensive post-engagement system backed by dedicated persistence layers and REST endpoints.
+
+### Supported Interactions
+
+| Interaction | Endpoint | Auth Required |
+|-------------|----------|---------------|
+| Like / Unlike | `POST /api/posts/{id}/like` | Yes |
+| Bookmark / Unbookmark | `POST /api/posts/{id}/bookmark` | Yes |
+| React (emoji) | `POST /api/posts/{id}/reaction` | Yes |
+| Remove Reaction | `DELETE /api/posts/{id}/reaction` | Yes |
+| Record View | `POST /api/posts/{id}/view` | No |
+| Record Share | `POST /api/posts/{id}/share` | No |
+| Get Summary | `GET /api/posts/{id}/engagement` | No |
+
+### Frontend Behavior
+
+- **Optimistic UI**: All interactions update the UI immediately before the API call completes. If the API call fails, the UI gracefully retains the local state change.
+- **Fallback Data**: When a post is a demonstration article (not backed by a backend record), the `EngagementBar` renders with stable seeded values instead of random numbers, ensuring visual consistency on every render.
+- **Bookmark Persistence**: Bookmarks are stored in `localStorage` under the key `wf_bookmarks` and synchronized across open tabs via the `storage` and `wf_bookmark_changed` browser events. The Bookmarks tab on the dashboard reflects this state in real time.
+- **Reaction Picker**: A floating picker allows users to select from six reaction types (`LIKE`, `LOVE`, `HAHA`, `WOW`, `SAD`, `ANGRY`). Selecting the same reaction twice removes it.
+
+---
+
+## 10. Content Authoring
+
+### Write Editor
+
+The write page (`/write`) provides a distraction-free authoring environment with the following capabilities:
+
+- **Cover Image**: A prominent image zone accepts any publicly accessible image URL. A live preview is rendered immediately after the URL is entered.
+- **Markdown-style Formatting**: The editor supports `**bold**`, `*italic*`, and `` `inline code` `` conventions, rendered correctly on the article page.
+- **Live Preview**: A toggle switches between write and preview modes, rendering the final article layout including the cover image and formatted text.
+- **Word Count and Read Time**: A live statistics bar displays the current word count, estimated read time (at 200 words per minute), and remaining character count.
+- **Tab Indentation**: The Tab key inserts two spaces instead of moving focus.
+
+### Cover Image Storage Strategy
+
+The cover image URL is embedded at the top of the content field using the following marker format, requiring no backend schema changes:
+
+```
+[cover:https://example.com/image.jpg]
+
+<rest of post content>
+```
+
+The `parseCoverImage()` utility in `postsApi.js` extracts and strips this marker transparently before rendering.
+
+---
+
+## 11. Post Feed and My Posts
+
+### Feed Architecture
+
+The authenticated feed fetches real backend posts via `GET /api/posts` and merges them with demonstration articles. Backend posts appear first. A demonstration article is excluded from the merged list only if a backend post with the same numeric ID already exists.
+
+### My Posts Tab
+
+A dedicated dashboard tab displays only the authenticated user's published articles, powered by:
+
+```
+GET /api/posts/my
+```
+
+This endpoint resolves the user ID from the JWT token via `@AuthenticationPrincipal` and returns a paginated list of posts authored by that user. This approach is reliable and does not depend on client-side author string matching.
+
+### Article Routing
+
+- **Numeric IDs** (e.g., `/post/4`): The backend is queried first. If a backend post is found, it is shown regardless of whether a demonstration article with the same ID exists. If the backend returns an error, the system falls back to the matching demonstration article. If neither exists, a "not found" state is shown.
+- **Non-numeric slugs**: Only demonstration articles are checked.
+
+---
+
+## 12. Bug Fixes and Stability Improvements
+
+### Lazy-Loading Transaction Fix
+
+`Post.author` is a `@ManyToOne(fetch = FetchType.LAZY)` association. The original `PostServiceImpl` had no `@Transactional` annotation, which caused the Hibernate session to close before `ModelMapper` accessed `post.getAuthor()`. This produced a `LazyInitializationException` on every read operation, resulting in HTTP 500 responses on `GET /api/posts` and `GET /api/posts/{id}`, and silently degraded the entire frontend to render demonstration data exclusively.
+
+**Resolution**: `@Transactional` was added to `PostServiceImpl` at the class level. All service methods now execute within a single Hibernate session, allowing lazy associations to be resolved correctly.
+
+### Author Field Mapping
+
+`PostDto` carries a `@Null` Bean Validation constraint on the `author` field to prevent clients from supplying an author during creation. This annotation has no effect on Jackson serialization. With the transaction fix in place, `ModelMapper` now correctly maps the `User` entity to `UserDto` in all responses.
+
+### Engagement Number Stability
+
+Demonstration articles previously computed `likes` and `views` using `Math.random()` inside `ArticleCard`. Since React can re-render components on parent re-renders or hover events, this produced different values on every render cycle. All eight demonstration articles now carry fixed, seeded engagement values in `dummyData.js`. `ArticleCard` reads `post.likes ?? 0` and `post.views ?? 0` directly.
