@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Rss, Eye, Edit3, Send, Loader2,
-  CheckCircle2, AlertCircle, Trash2, AlignLeft, Image as ImageIcon, X,
+  CheckCircle2, AlertCircle, Trash2, AlignLeft, Image as ImageIcon, X, Upload
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { createPost, updatePost, getPostFromApi, deletePost, parseCoverImage } from '../services/postsApi';
@@ -96,6 +96,53 @@ export default function WritePost() {
   const [deleting, setDeleting] = useState(false);
 
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Please upload a valid image file.');
+      setStatus('error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        setCoverImageUrl(dataUrl);
+      };
+      img.onerror = () => {
+        setErrorMsg('Failed to process image. Please try a different format.');
+        setStatus('error');
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   /* redirect if not logged in */
   useEffect(() => {
@@ -349,7 +396,7 @@ export default function WritePost() {
                       </div>
                       <div className="text-center">
                         <p className="text-sm font-semibold text-gray-400 group-hover:text-white transition-colors">Add a cover image</p>
-                        <p className="text-xs text-gray-600 mt-0.5">Paste an image URL below to add a cover photo</p>
+                        <p className="text-xs text-gray-600 mt-0.5">Paste a URL below or click the upload button</p>
                       </div>
                     </div>
                   ) : (
@@ -381,6 +428,20 @@ export default function WritePost() {
                       placeholder="Paste cover image URL (e.g. https://images.unsplash.com/...)"
                       className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-[#4f46e5]/50 focus:bg-white/[0.05] transition-all"
                     />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRef}
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.1] hover:text-white text-gray-400 rounded-xl text-sm font-medium transition-all"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span className="hidden sm:inline">Upload</span>
+                    </button>
                     {coverImageUrl && (
                       <button
                         onClick={() => setCoverImageUrl('')}
