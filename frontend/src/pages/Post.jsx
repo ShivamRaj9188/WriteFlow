@@ -157,7 +157,7 @@ export default function Post() {
     );
   }
 
-  const isAuthor = user && isBackendPost && article.authorName === user.username;
+  const isAuthor = user && isBackendPost && article.authorUsername === user.username;
 
   /* Related articles — always dummy for now, filtered so current dummy doesn't appear */
   const related = dummyArticles.filter((a) => a.id !== id).slice(0, 3);

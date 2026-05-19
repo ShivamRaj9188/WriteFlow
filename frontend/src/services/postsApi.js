@@ -41,8 +41,9 @@ export function normalizeBackendPost(post) {
     excerpt: stripMarkdown(cleanContent.replace(/<[^>]*>/g, '')).slice(0, 180) + (cleanContent.length > 180 ? '…' : ''),
     tag: 'Blog',
     category: 'General',
-    authorName: post.author?.username || 'Unknown',
-    authorAvatar: null,
+    authorName: post.author?.name || post.author?.username || 'Unknown',
+    authorUsername: post.author?.username || 'Unknown',
+    authorAvatar: post.author?.profileImageUrl || null,
     date: post.createdAt
       ? new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
       : '',
