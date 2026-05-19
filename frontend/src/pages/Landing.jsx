@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, LogOut, Zap, Shield, BookOpen, Rss, TrendingUp, User, Bookmark } from 'lucide-react';
+import { ArrowRight, LogOut, Zap, Shield, BookOpen, Rss, TrendingUp, User, Bookmark, PenLine } from 'lucide-react';
 import Button from '../components/Button';
 import ArticleCard from '../components/ArticleCard';
 import ProfileModal from '../components/ProfileModal';
@@ -38,6 +38,13 @@ function NavBar({ user, logout }) {
       {/* Auth Actions */}
       {user ? (
         <div className="flex items-center gap-3">
+          <Link
+            to="/write"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] text-white shadow-md shadow-purple-900/30 hover:shadow-purple-900/50 transition-all duration-200"
+          >
+            <PenLine className="w-3.5 h-3.5" />
+            Write
+          </Link>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-profile'))}
             className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/20 transition-all group"
@@ -66,6 +73,7 @@ function NavBar({ user, logout }) {
             Sign out
           </button>
         </div>
+
       ) : (
         <div className="flex items-center gap-2">
           <Link
