@@ -1,6 +1,6 @@
 # WriteFlow
 
-WriteFlow is a professional-grade, full-stack content publishing platform engineered with a focus on modern web standards, secure backend architecture, and a premium user experience. The system utilizes a decoupled architecture, featuring a high-performance Java Spring Boot REST API and a highly optimized React frontend.
+WriteFlow is a professional-grade, full-stack content publishing platform engineered with a focus on modern web standards, secure backend architecture, and a premium user experience. The system utilizes a decoupled architecture, featuring a high-performance Java Spring Boot REST API and a highly optimized React frontend
 
 ## 1. Key Features
 
